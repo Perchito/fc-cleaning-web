@@ -30,10 +30,12 @@ Output goes to `dist/` — deployable to Vercel, Netlify or GitHub Pages.
 - [x] About Us (story, feature blocks, coverage cards)
 - [x] Services (4 detailed service blocks, per-service CTAs, process)
 - [x] FAQ (categorised accordion, filter tabs, contact sidebar)
-- [ ] Contact Us
-- [ ] Thank-you / Privacy / Terms / 404
+- [x] Contact Us (enquiry form, contact sidebar, what-to-expect)
+- [x] Thank-you (form confirmation)
+- [ ] Privacy / Terms / 404
 
 ## Notes
 
 - Hero photo: drop your image into `public/images/hero.jpg` (a styled placeholder shows until then)
-- Contact form wiring arrives with the Contact page build
+- Contact form: create a free form at https://formspree.io, then replace `YOUR_FORM_ID` in `src/pages/Contact.jsx` — enquiries will land in your email inbox
+- WhatsApp button links to 07473 379928 via wa.me/447473379928
