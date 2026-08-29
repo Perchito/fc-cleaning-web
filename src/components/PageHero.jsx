@@ -1,6 +1,6 @@
 import { useSpring, animated, config } from '@react-spring/web'
 
-export default function PageHero({ eyebrow, title, sub }) {
+export default function PageHero({ eyebrow, title, sub, children }) {
   const badge = useSpring({
     from: { opacity: 0, transform: 'translateY(24px)' },
     to: { opacity: 1, transform: 'translateY(0px)' },
@@ -17,6 +17,12 @@ export default function PageHero({ eyebrow, title, sub }) {
     from: { opacity: 0, transform: 'translateY(32px)' },
     to: { opacity: 1, transform: 'translateY(0px)' },
     delay: 280,
+    config: config.gentle,
+  })
+  const actions = useSpring({
+    from: { opacity: 0, transform: 'translateY(32px)' },
+    to: { opacity: 1, transform: 'translateY(0px)' },
+    delay: 400,
     config: config.gentle,
   })
 
@@ -41,6 +47,11 @@ export default function PageHero({ eyebrow, title, sub }) {
         <animated.p style={subStyle} className="mt-5 max-w-2xl text-lg leading-relaxed text-navy-200">
           {sub}
         </animated.p>
+        {children ? (
+          <animated.div style={actions} className="mt-8 flex flex-wrap items-center gap-4">
+            {children}
+          </animated.div>
+        ) : null}
       </div>
     </section>
   )

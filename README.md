@@ -28,7 +28,7 @@ Output goes to `dist/` — deployable to Vercel, Netlify or GitHub Pages.
 
 - [x] Homepage (hero, trust marquee, why-FC stats, services, process, CTA, footer)
 - [x] About Us (story, feature blocks, coverage cards)
-- [ ] Services
+- [x] Services (4 detailed service blocks, per-service CTAs, process)
 - [ ] FAQ
 - [ ] Contact Us
 - [ ] Thank-you / Privacy / Terms / 404

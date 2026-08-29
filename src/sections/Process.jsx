@@ -20,7 +20,7 @@ const STEPS = [
   },
 ]
 
-export default function Process() {
+export default function Process({ heading = 'How it works' }) {
   const [ctaStyle, ctaBind] = useHoverSpring(1.05)
 
   return (
@@ -28,7 +28,7 @@ export default function Process() {
       <div className="mx-auto max-w-7xl px-5 lg:px-8">
         <Reveal className="max-w-2xl">
           <p className="text-xs font-extrabold uppercase tracking-[0.25em] text-teal-400">Simple process</p>
-          <h2 className="mt-3 text-3xl font-extrabold tracking-tight text-white sm:text-4xl lg:text-5xl">How it works</h2>
+          <h2 className="mt-3 text-3xl font-extrabold tracking-tight text-white sm:text-4xl lg:text-5xl">{heading}</h2>
           <p className="mt-4 text-base leading-relaxed text-navy-300">
             Three straightforward steps from your first message to a spotless venue — no hassle, no hidden extras.
           </p>
