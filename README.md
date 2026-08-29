@@ -7,7 +7,7 @@ Modern rebuild of fccleaningcompany.com with a premium navy + teal design system
 - React 19 + Vite
 - Tailwind CSS v4 (Plus Jakarta Sans, custom navy/teal tokens)
 - @react-spring/web — physics-based animations (scroll reveals, stat counters, hover springs)
-- react-router-dom — ready for the remaining pages
+- react-router-dom — client-side routing
 
 ## Run locally
 
@@ -27,7 +27,7 @@ Output goes to `dist/` — deployable to Vercel, Netlify or GitHub Pages.
 ## Content status
 
 - [x] Homepage (hero, trust marquee, why-FC stats, services, process, CTA, footer)
-- [ ] About Us
+- [x] About Us (story, feature blocks, coverage cards)
 - [ ] Services
 - [ ] FAQ
 - [ ] Contact Us
