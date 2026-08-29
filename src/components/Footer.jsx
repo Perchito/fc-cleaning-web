@@ -1,4 +1,5 @@
 import { Link } from 'react-router-dom'
+import Logo from './Logo.jsx'
 
 const SERVICES = [
   'Commercial Kitchen Cleaning',
@@ -23,9 +24,7 @@ export default function Footer() {
       <div className="mx-auto grid max-w-7xl gap-12 px-5 py-16 md:grid-cols-2 lg:grid-cols-4 lg:px-8">
         <div>
           <div className="flex items-center gap-3">
-            <span className="flex h-11 w-11 items-center justify-center rounded-xl bg-teal-500 text-lg font-extrabold text-navy-950">
-              FC
-            </span>
+            <Logo />
             <span className="text-sm font-extrabold tracking-tight text-white">FC Cleaning Company Ltd</span>
           </div>
           <p className="mt-4 text-sm leading-relaxed text-navy-300">

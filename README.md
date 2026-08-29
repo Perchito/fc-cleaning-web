@@ -34,8 +34,18 @@ Output goes to `dist/` — deployable to Vercel, Netlify or GitHub Pages.
 - [x] Thank-you (form confirmation)
 - [ ] Privacy / Terms / 404
 
+## Assets to upload (via GitHub web: Add file → Upload files)
+
+Binary files can't be pushed via API — upload these from the old repo (`fc_cleaning_site/images/company-logo/`):
+
+- `fc-logo-white-icon.png` → `public/images/fc-logo-white-icon.png` (header + footer logo)
+- `fc-logo-black-icon.png` → `public/favicon.png` (browser tab icon)
+- Hero photo → `public/images/hero.jpg` (styled placeholder shows until then)
+
+Note: `FC-NO-BG` shared as a `.jpeg` arrives as a blank white image — JPEG has no transparency,
+so always share the logo as the original PNG.
+
 ## Notes
 
-- Hero photo: drop your image into `public/images/hero.jpg` (a styled placeholder shows until then)
 - Contact form: create a free form at https://formspree.io, then replace `YOUR_FORM_ID` in `src/pages/Contact.jsx` — enquiries will land in your email inbox
 - WhatsApp button links to 07473 379928 via wa.me/447473379928

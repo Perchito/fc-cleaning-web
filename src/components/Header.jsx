@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { useSpring, animated } from '@react-spring/web'
 import useHoverSpring from '../hooks/useHoverSpring.js'
+import Logo from './Logo.jsx'
 
 const NAV = [
   { label: 'Home', to: '/' },
@@ -50,9 +51,7 @@ export default function Header() {
     >
       <div className="mx-auto flex h-20 max-w-7xl items-center justify-between px-5 lg:px-8">
         <Link to="/" className="flex items-center gap-3" onClick={() => setOpen(false)}>
-          <span className="flex h-11 w-11 items-center justify-center rounded-xl bg-teal-500 text-lg font-extrabold text-navy-950">
-            FC
-          </span>
+          <Logo />
           <span className="leading-tight">
             <span className="block text-sm font-extrabold tracking-tight text-white">FC Cleaning Company Ltd</span>
             <span className="block text-xs font-medium text-teal-300">Commercial Cleaning Manchester</span>
