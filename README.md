@@ -36,14 +36,13 @@ Output goes to `dist/` — deployable to Vercel (vercel.json SPA rewrite include
 - [x] Floating WhatsApp button (wa.me/447473379928, prefilled message)
 - [ ] Privacy / Terms / 404
 
-## Assets — move the uploaded images into public/
+## Assets
 
-The logo and hero photo are uploaded at the repo ROOT. The code already points at their final
-paths — just move each file via GitHub web (open the file → pencil/Edit → rename the path → Commit):
+Live in `public/images/` and wired in code:
 
-- `FC-NO-BG.png` → `public/images/fc-logo.png` (header + footer logo)
-- `office-cleaning-hero.jpg` → `public/images/hero.jpg` (homepage hero)
-- Optional, from the old repo (`fc_cleaning_site/images/company-logo/`): `fc-logo-black-icon.png` → `public/favicon.png`
+- `public/images/FC-NO-BG.png` — header + footer logo (`src/components/Logo.jsx`)
+- `public/images/office-cleaning-hero.jpg` — homepage hero (`src/sections/Hero.jsx`)
+- Optional: `fc-logo-black-icon.png` from the old repo → `public/favicon.png` (browser tab icon)
 
 Tips:
 - Compress the 3.2MB hero to a few hundred KB (squoosh.app, ~80% quality) for fast mobile loading

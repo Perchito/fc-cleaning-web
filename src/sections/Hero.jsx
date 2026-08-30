@@ -102,10 +102,10 @@ export default function Hero() {
         <animated.div style={visual} className="relative mb-8 lg:mb-0">
           <div className="relative aspect-[4/3] overflow-hidden rounded-3xl border border-white/10 bg-gradient-to-br from-navy-800 via-navy-900 to-teal-600/30 shadow-2xl shadow-navy-950/60">
             <p className="absolute inset-0 flex items-center justify-center p-10 text-center text-sm font-semibold leading-relaxed text-navy-300">
-              Clean, bright commercial kitchen and restaurant interior — drop your photo at public/images/hero.jpg
+              Clean, bright commercial interior
             </p>
             <img
-              src="/images/hero.jpg"
+              src="/images/office-cleaning-hero.jpg"
               alt="Clean, bright commercial kitchen and restaurant interior"
               className="absolute inset-0 h-full w-full object-cover"
               loading="eager"

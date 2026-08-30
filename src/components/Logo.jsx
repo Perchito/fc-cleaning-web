@@ -1,7 +1,6 @@
 import { useState } from 'react'
 
-// Transparent FC logo (FC-NO-BG.png) on dark surfaces.
-// Until public/images/fc-logo.png exists, falls back to the FC chip.
+// Transparent FC logo on dark surfaces. Falls back to the FC chip if the image is missing.
 export default function Logo({ className = 'h-11 w-11' }) {
   const [failed, setFailed] = useState(false)
 
@@ -17,7 +16,7 @@ export default function Logo({ className = 'h-11 w-11' }) {
 
   return (
     <img
-      src="/images/fc-logo.png"
+      src="/images/FC-NO-BG.png"
       alt="FC Cleaning Company logo"
       onError={() => setFailed(true)}
       className={`object-contain ${className}`}
