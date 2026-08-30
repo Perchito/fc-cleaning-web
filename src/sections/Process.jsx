@@ -51,7 +51,7 @@ export default function Process({ heading = 'How it works' }) {
 
         <Reveal delay={200} className="mt-10 flex flex-wrap items-center gap-5">
           <AnimatedLink
-            to="/contact"
+            to="/contact#contact-form"
             style={ctaStyle}
             {...ctaBind}
             className="inline-flex items-center rounded-full bg-teal-500 px-7 py-3.5 text-sm font-bold text-navy-950 transition-colors hover:bg-teal-400"

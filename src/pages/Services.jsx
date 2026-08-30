@@ -88,7 +88,7 @@ function ServiceBlock({ service, index }) {
             {service.text}
           </p>
           <AnimatedLink
-            to="/contact"
+            to="/contact#contact-form"
             style={btnStyle}
             {...btnBind}
             className={`mt-6 inline-flex items-center rounded-full px-6 py-3 text-sm font-bold transition-colors ${
@@ -142,7 +142,7 @@ export default function Services() {
         sub="From commercial kitchen deep cleans to daily front-of-house routines — flexible, reliable cleaning scheduled around your hours, not ours."
       >
         <AnimatedLink
-          to="/contact"
+          to="/contact#contact-form"
           style={primaryStyle}
           {...primaryBind}
           className="inline-flex items-center rounded-full bg-teal-500 px-7 py-3.5 text-sm font-bold text-navy-950 transition-colors hover:bg-teal-400"

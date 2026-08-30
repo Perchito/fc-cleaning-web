@@ -14,11 +14,12 @@ const NAV = [
   { label: 'Contact Us', to: '/contact' },
 ]
 
-function QuoteButton({ className = '' }) {
+function QuoteButton({ className = '', onClick }) {
   const [style, bind] = useHoverSpring(1.05)
   return (
     <AnimatedLink
-      to="/contact"
+      to="/contact#contact-form"
+      onClick={onClick}
       style={style}
       {...bind}
       className={`inline-flex items-center justify-center rounded-full bg-teal-500 px-5 py-2.5 text-sm font-bold text-navy-950 transition-colors hover:bg-teal-400 ${className}`}
@@ -145,7 +146,7 @@ export default function Header() {
                 <a href="tel:01613990482" className="text-sm font-bold text-white">
                   0161 399 0482
                 </a>
-                <QuoteButton />
+                <QuoteButton onClick={() => setOpen(false)} />
               </div>
             </nav>
           </animated.div>

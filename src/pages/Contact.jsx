@@ -77,7 +77,11 @@ export default function Contact() {
       <section className="bg-navy-50 py-20 lg:py-28">
         <div className="mx-auto grid max-w-7xl gap-8 px-5 lg:grid-cols-5 lg:px-8">
           <Reveal className="lg:col-span-3">
-            <form onSubmit={onSubmit} className="rounded-3xl border border-navy-100 bg-white p-7 shadow-sm lg:p-10">
+            <form
+              id="contact-form"
+              onSubmit={onSubmit}
+              className="scroll-mt-28 rounded-3xl border border-navy-100 bg-white p-7 shadow-sm lg:p-10"
+            >
               <h2 className="text-2xl font-extrabold tracking-tight text-navy-950">Send us a message</h2>
 
               <div className="mt-7 grid gap-5 sm:grid-cols-2">

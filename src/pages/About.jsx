@@ -90,7 +90,7 @@ export default function About() {
               ))}
             </div>
             <Link
-              to="/contact"
+              to="/contact#contact-form"
               className="mt-6 inline-flex items-center gap-2 text-sm font-bold text-teal-600 transition-colors hover:text-teal-500"
             >
               Get a free quote <span aria-hidden="true">→</span>

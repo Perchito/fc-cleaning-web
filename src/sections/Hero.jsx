@@ -69,7 +69,7 @@ export default function Hero() {
           <animated.div style={actions}>
             <div className="mt-8 flex flex-wrap items-center gap-4">
               <AnimatedLink
-                to="/contact"
+                to="/contact#contact-form"
                 style={primaryStyle}
                 {...primaryBind}
                 className="inline-flex items-center rounded-full bg-teal-500 px-7 py-3.5 text-sm font-bold text-navy-950 transition-colors hover:bg-teal-400"

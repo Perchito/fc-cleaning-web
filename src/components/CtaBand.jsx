@@ -35,7 +35,7 @@ export default function CtaBand() {
           </div>
           <div className="mt-8 flex flex-wrap items-center gap-4">
             <AnimatedLink
-              to="/contact"
+              to="/contact#contact-form"
               style={primaryStyle}
               {...primaryBind}
               className="inline-flex items-center rounded-full bg-navy-950 px-7 py-3.5 text-sm font-bold text-white"
