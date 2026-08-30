@@ -36,16 +36,20 @@ Output goes to `dist/` — deployable to Vercel (vercel.json SPA rewrite include
 - [x] Floating WhatsApp button (wa.me/447473379928, prefilled message)
 - [ ] Privacy / Terms / 404
 
-## Assets to upload (via GitHub web: Add file → Upload files)
+## Assets — move the uploaded images into public/
 
-Binary files can't be pushed via API — upload these from the old repo (`fc_cleaning_site/images/company-logo/`):
+The logo and hero photo are uploaded at the repo ROOT. The code already points at their final
+paths — just move each file via GitHub web (open the file → pencil/Edit → rename the path → Commit):
 
-- `fc-logo-white-icon.png` → `public/images/fc-logo-white-icon.png` (header + footer logo)
-- `fc-logo-black-icon.png` → `public/favicon.png` (browser tab icon)
-- Hero photo → `public/images/hero.jpg` (styled placeholder shows until then)
+- `FC-NO-BG.png` → `public/images/fc-logo.png` (header + footer logo)
+- `office-cleaning-hero.jpg` → `public/images/hero.jpg` (homepage hero)
+- Optional, from the old repo (`fc_cleaning_site/images/company-logo/`): `fc-logo-black-icon.png` → `public/favicon.png`
 
-Note: `FC-NO-BG` shared as a `.jpeg` arrives as a blank white image — JPEG has no transparency,
-so always share the logo as the original PNG.
+Tips:
+- Compress the 3.2MB hero to a few hundred KB (squoosh.app, ~80% quality) for fast mobile loading
+- If the logo looks invisible on the dark navy header, it's the dark-artwork variant — either upload
+  `fc-logo-white-icon.png` instead (update the path in `src/components/Logo.jsx`) or ask for a white backing chip
+- `FC-NO-BG` shared as `.jpeg` arrives blank — JPEG has no transparency; always use the PNG
 
 ## Performance notes
 
