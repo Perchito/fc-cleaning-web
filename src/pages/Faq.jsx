@@ -136,7 +136,7 @@ function Sidebar() {
 
 export default function Faq() {
   const [active, setActive] = useState('All questions')
-  const [openQ, setOpenQ] = useState(FAQS[0].q)
+  const [openQ, setOpenQ] = useState(null)
 
   const groups = active === 'All questions' ? GROUP_ORDER : [active]
 
