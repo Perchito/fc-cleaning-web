@@ -1,35 +1,36 @@
-import { useSpring, animated, config } from '@react-spring/web'
+import { useSpring, animated } from '@react-spring/web'
+
+// Short, snappy springs — entrance settles fast even on low-end phones
+const ENTER = { tension: 210, friction: 26 }
 
 export default function PageHero({ eyebrow, title, sub, children }) {
   const badge = useSpring({
-    from: { opacity: 0, transform: 'translateY(24px)' },
+    from: { opacity: 0, transform: 'translateY(16px)' },
     to: { opacity: 1, transform: 'translateY(0px)' },
-    delay: 50,
-    config: config.gentle,
+    config: ENTER,
   })
   const head = useSpring({
-    from: { opacity: 0, transform: 'translateY(32px)' },
+    from: { opacity: 0, transform: 'translateY(20px)' },
     to: { opacity: 1, transform: 'translateY(0px)' },
-    delay: 150,
-    config: config.gentle,
+    delay: 90,
+    config: ENTER,
   })
   const subStyle = useSpring({
-    from: { opacity: 0, transform: 'translateY(32px)' },
+    from: { opacity: 0, transform: 'translateY(20px)' },
     to: { opacity: 1, transform: 'translateY(0px)' },
-    delay: 280,
-    config: config.gentle,
+    delay: 180,
+    config: ENTER,
   })
   const actions = useSpring({
-    from: { opacity: 0, transform: 'translateY(32px)' },
+    from: { opacity: 0, transform: 'translateY(20px)' },
     to: { opacity: 1, transform: 'translateY(0px)' },
-    delay: 400,
-    config: config.gentle,
+    delay: 270,
+    config: ENTER,
   })
 
   return (
     <section className="relative overflow-hidden bg-navy-950">
-      <div className="pointer-events-none absolute -left-40 top-0 h-96 w-96 rounded-full bg-teal-500/15 blur-3xl" />
-      <div className="pointer-events-none absolute -right-40 bottom-0 h-96 w-96 rounded-full bg-navy-700/40 blur-3xl" />
+      <div className="hero-glow pointer-events-none absolute inset-0" />
 
       <div className="relative mx-auto max-w-7xl px-5 pb-16 pt-32 lg:px-8 lg:pb-24 lg:pt-40">
         <animated.span

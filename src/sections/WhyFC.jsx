@@ -34,7 +34,7 @@ function Stat({ value, suffix, label, inView, delay }) {
     from: { number: 0 },
     to: { number: inView ? value : 0 },
     delay,
-    config: { tension: 55, friction: 14 },
+    config: { tension: 100, friction: 20 },
   })
 
   return (

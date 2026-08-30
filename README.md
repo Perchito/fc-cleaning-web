@@ -47,6 +47,12 @@ Binary files can't be pushed via API — upload these from the old repo (`fc_cle
 Note: `FC-NO-BG` shared as a `.jpeg` arrives as a blank white image — JPEG has no transparency,
 so always share the logo as the original PNG.
 
+## Performance notes
+
+- Entrance springs are tuned short (tension 210 / friction 26, tight stagger) — full hero entrance settles in ~0.7s
+- Glows use static radial gradients (`.hero-glow`) instead of blur filters — far cheaper on low-end phones
+- Judge speed with `npm run build && npm run preview` (production), not the dev server — dev is unminified and slower
+
 ## Notes
 
 - Contact form is wired to Formspree (`mzdjyqnv`) — first submission sends a verification email to the recipient address; confirm it once and enquiries flow to the inbox

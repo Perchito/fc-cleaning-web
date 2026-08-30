@@ -35,6 +35,13 @@ button {
   -webkit-tap-highlight-color: transparent;
 }
 
+/* Static gradient glows — much cheaper than blur filters on low-end phones */
+.hero-glow {
+  background:
+    radial-gradient(420px 420px at 12% 18%, rgba(20, 184, 166, 0.16), transparent 70%),
+    radial-gradient(520px 520px at 88% 82%, rgba(37, 67, 99, 0.5), transparent 70%);
+}
+
 /* Trust bar marquee */
 .marquee {
   overflow: hidden;
