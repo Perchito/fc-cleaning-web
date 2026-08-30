@@ -29,6 +29,12 @@ body {
   margin: 0;
 }
 
+/* Remove grey tap flash on iOS/Android */
+a,
+button {
+  -webkit-tap-highlight-color: transparent;
+}
+
 /* Trust bar marquee */
 .marquee {
   overflow: hidden;
