@@ -74,7 +74,7 @@ export default function Header() {
       >
         <div className="mx-auto flex h-20 max-w-7xl items-center justify-between px-5 lg:px-8">
           <Link to="/" className="flex items-center gap-3" onClick={() => setOpen(false)}>
-            <Logo />
+            <Logo className="h-16 w-16" />
             <span className="leading-tight">
               <span className="block text-sm font-extrabold tracking-tight text-white">FC Cleaning Company Ltd</span>
               <span className="block text-xs font-medium text-teal-300">Commercial Cleaning Manchester</span>
