@@ -168,7 +168,8 @@ export default function Contact() {
                     >
                       fernando.c@fccleaningcompany.com
                     </a>
-                  </li>lat                    <li>
+                  </li>
+                  <li>
                     <p className="text-xs font-extrabold uppercase tracking-[0.2em] text-teal-400">WhatsApp</p>
                     <a
                       href="https://wa.me/447473379928"
