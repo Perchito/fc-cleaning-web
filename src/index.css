@@ -29,6 +29,12 @@ body {
   margin: 0;
 }
 
+/* Never allow the page to shift/scroll sideways (stray decorative elements, browser quirks) */
+html,
+body {
+  overflow-x: clip;
+}
+
 /* Remove grey tap flash on iOS/Android */
 a,
 button {

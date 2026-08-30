@@ -24,8 +24,9 @@ const EXPECTATIONS = [
   'Fully insured on every job',
 ]
 
+// text-base (16px) minimum: iOS Safari auto-zooms the page when focusing inputs smaller than 16px
 const inputClass =
-  'w-full rounded-xl border border-navy-200 bg-white px-4 py-3 text-sm font-medium text-navy-900 placeholder:text-navy-300 outline-none transition-colors focus:border-teal-500 focus:ring-2 focus:ring-teal-500/20'
+  'w-full rounded-xl border border-navy-200 bg-white px-4 py-3 text-base font-medium text-navy-900 placeholder:text-navy-300 outline-none transition-colors focus:border-teal-500 focus:ring-2 focus:ring-teal-500/20'
 
 function Field({ label, required, children }) {
   return (
@@ -167,8 +168,7 @@ export default function Contact() {
                     >
                       fernando.c@fccleaningcompany.com
                     </a>
-                  </li>
-                  <li>
+                  </li>lat                    <li>
                     <p className="text-xs font-extrabold uppercase tracking-[0.2em] text-teal-400">WhatsApp</p>
                     <a
                       href="https://wa.me/447473379928"
