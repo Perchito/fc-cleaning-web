@@ -13,6 +13,7 @@ export default function ThankYou() {
   return (
     <>
       <PageHero
+        compact
         eyebrow="Message Received"
         title="Thank you for getting in touch!"
         sub="We've received your enquiry and will get back to you within 24 hours. For urgent matters call us directly on 0161 399 0482."
