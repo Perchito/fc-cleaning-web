@@ -16,7 +16,7 @@ export default function Logo({ className = 'h-11 w-11' }) {
 
   return (
     <img
-      src="/images/fc-logo-white-icon.png"
+      src="/images/FC-NO-BG.png"
       alt="FC Cleaning Company logo"
       onError={() => setFailed(true)}
       className={`object-contain ${className}`}
