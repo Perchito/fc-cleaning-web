@@ -1,5 +1,8 @@
+import { Link } from 'react-router-dom'
 import { useSpring, animated, config } from '@react-spring/web'
 import useHoverSpring from '../hooks/useHoverSpring.js'
+
+const AnimatedLink = animated(Link)
 
 const CHIPS = ['Flexible scheduling', 'Fully insured', 'Owner-managed', 'Free first quote']
 
@@ -70,22 +73,22 @@ export default function Hero() {
           </animated.p>
 
           <animated.div style={actions} className="mt-8 flex flex-wrap items-center gap-4">
-            <animated.a
-              href="/contact"
+            <AnimatedLink
+              to="/contact"
               style={primaryStyle}
               {...primaryBind}
               className="inline-flex items-center rounded-full bg-teal-500 px-7 py-3.5 text-sm font-bold text-navy-950 transition-colors hover:bg-teal-400"
             >
               Get a Free Quote
-            </animated.a>
-            <animated.a
-              href="/services"
+            </AnimatedLink>
+            <AnimatedLink
+              to="/services"
               style={ghostStyle}
               {...ghostBind}
               className="inline-flex items-center rounded-full border border-white/20 px-7 py-3.5 text-sm font-bold text-white transition-colors hover:border-teal-300 hover:text-teal-300"
             >
               Our Services
-            </animated.a>
+            </AnimatedLink>
           </animated.div>
 
           <animated.ul style={actions} className="mt-8 flex flex-wrap gap-x-6 gap-y-2">

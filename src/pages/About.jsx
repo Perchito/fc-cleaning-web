@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import { Link } from 'react-router-dom'
 import { useSpring, animated } from '@react-spring/web'
 import PageHero from '../components/PageHero.jsx'
 import Reveal from '../components/Reveal.jsx'
@@ -88,12 +89,12 @@ export default function About() {
                 <p key={p.slice(0, 24)}>{p}</p>
               ))}
             </div>
-            <a
-              href="/contact"
+            <Link
+              to="/contact"
               className="mt-6 inline-flex items-center gap-2 text-sm font-bold text-teal-600 transition-colors hover:text-teal-500"
             >
               Get a free quote <span aria-hidden="true">→</span>
-            </a>
+            </Link>
           </Reveal>
 
           <div className="space-y-5">

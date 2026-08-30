@@ -1,6 +1,9 @@
+import { Link } from 'react-router-dom'
 import { animated } from '@react-spring/web'
 import Reveal from './Reveal.jsx'
 import useHoverSpring from '../hooks/useHoverSpring.js'
+
+const AnimatedLink = animated(Link)
 
 const CHIPS = ['Free quote, no obligation', 'Reply within 24 hours', 'Fully insured', 'Owner-managed']
 
@@ -31,14 +34,14 @@ export default function CtaBand() {
             ))}
           </div>
           <div className="mt-8 flex flex-wrap items-center gap-4">
-            <animated.a
-              href="/contact"
+            <AnimatedLink
+              to="/contact"
               style={primaryStyle}
               {...primaryBind}
               className="inline-flex items-center rounded-full bg-navy-950 px-7 py-3.5 text-sm font-bold text-white"
             >
               Get a Free Quote
-            </animated.a>
+            </AnimatedLink>
             <animated.a
               href="tel:01613990482"
               style={ghostStyle}

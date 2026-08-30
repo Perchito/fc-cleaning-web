@@ -1,10 +1,13 @@
 import { useState } from 'react'
+import { Link } from 'react-router-dom'
 import { useSpring, animated } from '@react-spring/web'
 import PageHero from '../components/PageHero.jsx'
 import Reveal from '../components/Reveal.jsx'
 import CtaBand from '../components/CtaBand.jsx'
 import Process from '../sections/Process.jsx'
 import useHoverSpring from '../hooks/useHoverSpring.js'
+
+const AnimatedLink = animated(Link)
 
 const SERVICES = [
   {
@@ -84,8 +87,8 @@ function ServiceBlock({ service, index }) {
           <p className={`mt-3 text-base leading-relaxed ${dark ? 'text-navy-200' : 'text-navy-500'}`}>
             {service.text}
           </p>
-          <animated.a
-            href="/contact"
+          <AnimatedLink
+            to="/contact"
             style={btnStyle}
             {...btnBind}
             className={`mt-6 inline-flex items-center rounded-full px-6 py-3 text-sm font-bold transition-colors ${
@@ -93,7 +96,7 @@ function ServiceBlock({ service, index }) {
             }`}
           >
             {service.cta}
-          </animated.a>
+          </AnimatedLink>
         </div>
 
         <div>
@@ -138,14 +141,14 @@ export default function Services() {
         title="Hospitality cleaning services built around your business"
         sub="From commercial kitchen deep cleans to daily front-of-house routines — flexible, reliable cleaning scheduled around your hours, not ours."
       >
-        <animated.a
-          href="/contact"
+        <AnimatedLink
+          to="/contact"
           style={primaryStyle}
           {...primaryBind}
           className="inline-flex items-center rounded-full bg-teal-500 px-7 py-3.5 text-sm font-bold text-navy-950 transition-colors hover:bg-teal-400"
         >
           Get a Free Quote
-        </animated.a>
+        </AnimatedLink>
         <animated.a
           href="tel:01613990482"
           style={ghostStyle}

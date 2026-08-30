@@ -1,7 +1,10 @@
 import { useState } from 'react'
+import { Link } from 'react-router-dom'
 import { useSpring, animated } from '@react-spring/web'
 import Reveal from '../components/Reveal.jsx'
 import useHoverSpring from '../hooks/useHoverSpring.js'
+
+const AnimatedLink = animated(Link)
 
 const SERVICES = [
   {
@@ -42,12 +45,12 @@ function ServiceCard({ service, index }) {
       </span>
       <h3 className="mt-5 text-xl font-extrabold tracking-tight text-navy-950">{service.title}</h3>
       <p className="mt-3 flex-1 text-sm leading-relaxed text-navy-500">{service.text}</p>
-      <a
-        href="/services"
+      <Link
+        to="/services"
         className="mt-5 inline-flex items-center gap-2 text-sm font-bold text-teal-600 transition-colors hover:text-teal-500"
       >
         Learn More <span aria-hidden="true">→</span>
-      </a>
+      </Link>
     </animated.article>
   )
 }
@@ -69,14 +72,14 @@ export default function Services() {
             </p>
           </Reveal>
           <Reveal delay={120}>
-            <animated.a
-              href="/services"
+            <AnimatedLink
+              to="/services"
               style={ctaStyle}
               {...ctaBind}
               className="inline-flex items-center rounded-full bg-navy-950 px-6 py-3 text-sm font-bold text-white"
             >
               View all services &amp; get a quote
-            </animated.a>
+            </AnimatedLink>
           </Reveal>
         </div>
 

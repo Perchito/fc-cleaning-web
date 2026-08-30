@@ -4,6 +4,8 @@ import { useTransition, animated } from '@react-spring/web'
 import useHoverSpring from '../hooks/useHoverSpring.js'
 import Logo from './Logo.jsx'
 
+const AnimatedLink = animated(Link)
+
 const NAV = [
   { label: 'Home', to: '/' },
   { label: 'About Us', to: '/about' },
@@ -15,14 +17,14 @@ const NAV = [
 function QuoteButton({ className = '' }) {
   const [style, bind] = useHoverSpring(1.05)
   return (
-    <animated.a
-      href="/contact"
+    <AnimatedLink
+      to="/contact"
       style={style}
       {...bind}
       className={`inline-flex items-center justify-center rounded-full bg-teal-500 px-5 py-2.5 text-sm font-bold text-navy-950 transition-colors hover:bg-teal-400 ${className}`}
     >
       Get a Free Quote
-    </animated.a>
+    </AnimatedLink>
   )
 }
 

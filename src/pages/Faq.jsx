@@ -1,9 +1,12 @@
 import { useState } from 'react'
+import { Link } from 'react-router-dom'
 import { useSpring, animated } from '@react-spring/web'
 import PageHero from '../components/PageHero.jsx'
 import Reveal from '../components/Reveal.jsx'
 import CtaBand from '../components/CtaBand.jsx'
 import useHoverSpring from '../hooks/useHoverSpring.js'
+
+const AnimatedLink = animated(Link)
 
 const CATEGORIES = ['All questions', 'Services', 'Coverage & Hours', 'Pricing & Contracts', 'Trust & Quality']
 
@@ -109,14 +112,14 @@ function Sidebar() {
         <h2 className="text-2xl font-extrabold tracking-tight">Still have a question?</h2>
         <p className="mt-3 text-sm leading-relaxed text-navy-200">Get in touch — we reply within 24 hours</p>
         <div className="mt-6 space-y-3">
-          <animated.a
-            href="/contact"
+          <AnimatedLink
+            to="/contact"
             style={msgStyle}
             {...msgBind}
             className="flex items-center justify-center rounded-full bg-teal-500 px-6 py-3 text-sm font-bold text-navy-950 transition-colors hover:bg-teal-400"
           >
             Send us a message
-          </animated.a>
+          </AnimatedLink>
           <animated.a
             href="tel:01613990482"
             style={telStyle}

@@ -8,6 +8,7 @@ Modern rebuild of fccleaningcompany.com with a premium navy + teal design system
 - Tailwind CSS v4 (Plus Jakarta Sans, custom navy/teal tokens)
 - @react-spring/web — physics-based animations (scroll reveals, stat counters, hover springs, FAQ accordion)
 - react-router-dom — client-side routing
+- Formspree — contact form email delivery
 
 ## Run locally
 
@@ -22,7 +23,7 @@ npm run dev
 npm run build
 ```
 
-Output goes to `dist/` — deployable to Vercel, Netlify or GitHub Pages.
+Output goes to `dist/` — deployable to Vercel (vercel.json SPA rewrite included), Netlify or GitHub Pages.
 
 ## Content status
 
@@ -30,7 +31,7 @@ Output goes to `dist/` — deployable to Vercel, Netlify or GitHub Pages.
 - [x] About Us (story, feature blocks, coverage cards)
 - [x] Services (4 detailed service blocks, per-service CTAs, process)
 - [x] FAQ (categorised accordion, filter tabs, contact sidebar)
-- [x] Contact Us (enquiry form, contact sidebar, what-to-expect)
+- [x] Contact Us (enquiry form → Formspree, contact sidebar, what-to-expect)
 - [x] Thank-you (form confirmation)
 - [ ] Privacy / Terms / 404
 
@@ -47,5 +48,5 @@ so always share the logo as the original PNG.
 
 ## Notes
 
-- Contact form: create a free form at https://formspree.io, then replace `YOUR_FORM_ID` in `src/pages/Contact.jsx` — enquiries will land in your email inbox
+- Contact form is wired to Formspree (`mzdjyqnv`) — first submission sends a verification email to the recipient address; confirm it once and enquiries flow to the inbox
 - WhatsApp button links to 07473 379928 via wa.me/447473379928

@@ -6,9 +6,8 @@ import Reveal from '../components/Reveal.jsx'
 import CtaBand from '../components/CtaBand.jsx'
 import useHoverSpring from '../hooks/useHoverSpring.js'
 
-// 1. Create a free form at https://formspree.io
-// 2. Replace YOUR_FORM_ID below with your form ID — done, enquiries land in your inbox
-const FORMSPREE_ENDPOINT = 'https://formspree.io/f/YOUR_FORM_ID'
+// Formspree endpoint — enquiries are emailed to the address on the Formspree account
+const FORMSPREE_ENDPOINT = 'https://formspree.io/f/mzdjyqnv'
 
 const SERVICES = [
   'Commercial Kitchen Cleaning',

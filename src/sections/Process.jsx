@@ -1,6 +1,9 @@
+import { Link } from 'react-router-dom'
 import { animated } from '@react-spring/web'
 import Reveal from '../components/Reveal.jsx'
 import useHoverSpring from '../hooks/useHoverSpring.js'
+
+const AnimatedLink = animated(Link)
 
 const STEPS = [
   {
@@ -47,14 +50,14 @@ export default function Process({ heading = 'How it works' }) {
         </div>
 
         <Reveal delay={200} className="mt-10 flex flex-wrap items-center gap-5">
-          <animated.a
-            href="/contact"
+          <AnimatedLink
+            to="/contact"
             style={ctaStyle}
             {...ctaBind}
             className="inline-flex items-center rounded-full bg-teal-500 px-7 py-3.5 text-sm font-bold text-navy-950 transition-colors hover:bg-teal-400"
           >
             Start with a free quote
-          </animated.a>
+          </AnimatedLink>
           <span className="inline-flex items-center gap-2 text-sm font-semibold text-navy-200">
             <span className="flex h-5 w-5 items-center justify-center rounded-full bg-teal-500/15 text-xs text-teal-300">
               ✓

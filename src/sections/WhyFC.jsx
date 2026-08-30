@@ -1,3 +1,4 @@
+import { Link } from 'react-router-dom'
 import { useSpring, animated } from '@react-spring/web'
 import Reveal from '../components/Reveal.jsx'
 import useInViewOnce from '../hooks/useInViewOnce.js'
@@ -64,12 +65,12 @@ export default function WhyFC() {
             <p className="text-base leading-relaxed text-navy-500">
               From restaurants and pubs to bars and commercial kitchens across Manchester and the North West.
             </p>
-            <a
-              href="/contact"
+            <Link
+              to="/contact"
               className="mt-4 inline-flex items-center gap-2 text-sm font-bold text-teal-600 transition-colors hover:text-teal-500"
             >
               Get a free quote <span aria-hidden="true">→</span>
-            </a>
+            </Link>
           </Reveal>
         </div>
 
