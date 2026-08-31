@@ -57,14 +57,12 @@ export default function Header() {
     }
   }, [open])
 
-  // Menu only exists in the DOM while open (or animating out) — no invisible overlay.
-  // clamp stops the spring bouncing past its target, which let the page behind
-  // the menu flash back into view for a moment on mobile.
+  // Menu only exists in the DOM while open (or animating out) — no invisible overlay
   const menuTransition = useTransition(open, {
     from: { opacity: 0, transform: 'translateY(-12px)' },
     enter: { opacity: 1, transform: 'translateY(0px)' },
     leave: { opacity: 0, transform: 'translateY(-12px)' },
-    config: { tension: 280, friction: 22, clamp: true },
+    config: { tension: 280, friction: 22 },
   })
 
   return (
@@ -130,10 +128,9 @@ export default function Header() {
       {menuTransition((style, isOpen) =>
         isOpen ? (
           <animated.div id="mobile-menu" style={style} className="lg:hidden">
-            {/* solid bg (no backdrop-blur): mobile browsers drop backdrop-filter while the fade animation runs, causing a flash */}
             <nav
               aria-label="Mobile navigation"
-              className="space-y-1 border-t border-white/10 bg-navy-950 px-5 pb-6 pt-3 shadow-xl shadow-navy-950/30"
+              className="space-y-1 border-t border-white/10 bg-navy-950/95 px-5 pb-6 pt-3 shadow-xl shadow-navy-950/30 backdrop-blur"
             >
               {NAV.map((item) => (
                 <Link
