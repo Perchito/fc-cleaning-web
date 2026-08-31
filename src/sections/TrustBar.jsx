@@ -1,3 +1,9 @@
+/*
+Trust bar banner ("Trusted by businesses across Manchester & the North West")
+with the scrolling client names — commented out on 31 Aug 2026.
+To restore: uncomment this whole file AND the two marked TrustBar lines in
+src/pages/Home.jsx.
+
 import Reveal from '../components/Reveal.jsx'
 
 const CLIENTS = [
@@ -32,3 +38,4 @@ export default function TrustBar() {
     </section>
   )
 }
+*/
