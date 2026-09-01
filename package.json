@@ -11,6 +11,10 @@
   },
   "dependencies": {
     "@react-spring/web": "^10.0.1",
+    "@vercel/blob": "^2.8.0",
+    "imapflow": "^1.7.7",
+    "mailparser": "^3.9.19",
+    "nodemailer": "^9.1.0",
     "react": "^19.1.0",
     "react-dom": "^19.1.0",
     "react-router-dom": "^7.8.0"

@@ -1,0 +1,59 @@
+<!doctype html>
+<html lang="en-GB">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+  <meta name="robots" content="noindex, nofollow" />
+  <title>FC Outreach</title>
+  <link rel="stylesheet" href="/ops/styles.css" />
+</head>
+<body>
+  <header>
+    <div class="wrap">
+      <h1>FC Cleaning — Outreach</h1>
+      <div class="sub" id="sub">loading…</div>
+      <div class="chips" id="chips"></div>
+    </div>
+  </header>
+
+  <div class="bar">
+    <button class="primary" id="poll">Check for replies now</button>
+    <span class="grow"></span>
+    <span class="hint" id="lastpoll"></span>
+  </div>
+
+  <main class="wrap" id="list"><div class="empty">Loading…</div></main>
+
+  <details class="add">
+    <summary>+ Add a prospect</summary>
+    <div class="row">
+      <input id="a-biz" placeholder="Business name" />
+      <input id="a-email" type="email" placeholder="email@business.co.uk" />
+      <input id="a-contact" placeholder="Contact name (optional)" />
+      <button id="a-save">Add</button>
+    </div>
+    <p class="hint">Added as a draft — you send the first email from its card.</p>
+  </details>
+
+  <dialog id="draft">
+    <form method="dialog">
+      <div class="modal-h" id="d-title">Draft</div>
+      <div class="modal-b">
+        <label>To</label>
+        <input id="d-to" readonly />
+        <label>Subject</label>
+        <input id="d-subject" />
+        <label>Message</label>
+        <textarea id="d-text"></textarea>
+      </div>
+      <div class="modal-f">
+        <button value="cancel">Cancel</button>
+        <button class="primary" id="d-send" value="send" type="button">Send email</button>
+      </div>
+    </form>
+  </dialog>
+
+  <div id="toast"></div>
+  <script src="/ops/app.js"></script>
+</body>
+</html>

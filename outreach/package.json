@@ -1,0 +1,20 @@
+{
+  "name": "fc-outreach",
+  "private": true,
+  "version": "1.0.0",
+  "type": "module",
+  "description": "FC Cleaning Company — cold-outreach tracker: logs sent emails, polls iCloud for replies, drafts follow-ups, serves a dashboard.",
+  "main": "server.mjs",
+  "scripts": {
+    "start": "node server.mjs",
+    "poll": "node scripts/poll-once.mjs",
+    "install-service": "bash scripts/install-service.sh"
+  },
+  "dependencies": {
+    "express": "^4.21.2",
+    "imapflow": "^1.0.191",
+    "mailparser": "^3.7.2",
+    "node-cron": "^3.0.3",
+    "nodemailer": "^6.9.16"
+  }
+}
