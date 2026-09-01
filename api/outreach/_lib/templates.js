@@ -24,6 +24,11 @@ const HOOKS = {
   "ancoats-coffee-co": "an early-morning café clean plus periodic deep cleans at the roastery",
   cotton: "early-morning cleans before service and deeper work on the bakery side",
   "half-dozen-other": "a before-open clean of the room and regular kitchen degreasing",
+  "the-pearl": "cleaning the kitchen, extraction and dining room at The Pearl around your Thursday–Sunday service",
+  "scrumptious-tea-rooms": "a before-open clean of the tea room plus the kitchen and bakes side",
+  "olio-didsbury": "kitchen deep cleans, extraction and front-of-house on Wilmslow Road",
+  "eden-monton": "kitchen deep cleans, extraction canopies and the dining room at Eden",
+  "backs-deli": "the deli counter, prep area, floors and shopfront on Heaton Moor Road",
 };
 
 export function draftFollowUp(p, round = 1) {
