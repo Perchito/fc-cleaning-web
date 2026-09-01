@@ -53,6 +53,31 @@ function timeAgo(iso) {
   return Math.round(h / 24) + "d ago";
 }
 
+// Workflow sections — grouped by what you need to do, not raw status.
+const SECTIONS = [
+  { key: "replied", title: "Replied — respond to these", statuses: ["replied"], defaultOpen: true },
+  { key: "followup", title: "Follow up now", statuses: ["follow_up_due"], defaultOpen: true },
+  { key: "tosend", title: "To send", statuses: ["draft"], defaultOpen: true },
+  { key: "awaiting", title: "Awaiting reply", statuses: ["awaiting_reply"], defaultOpen: true },
+  { key: "attention", title: "Needs attention", statuses: ["bounced"], defaultOpen: true },
+  { key: "closed", title: "Closed", statuses: ["won", "lost", "unsubscribed"], defaultOpen: false },
+];
+
+function collapsedSet() {
+  try {
+    return new Set(JSON.parse(localStorage.getItem("fc_ops_collapsed") || "[]"));
+  } catch {
+    return new Set();
+  }
+}
+function saveCollapsed(set) {
+  try {
+    localStorage.setItem("fc_ops_collapsed", JSON.stringify([...set]));
+  } catch {
+    /* private mode — ignore */
+  }
+}
+
 function render() {
   const { prospects, counts, total } = STATE;
   $("#sub").textContent = `${total} prospect${total === 1 ? "" : "s"}`;
@@ -68,9 +93,44 @@ function render() {
   $("#lastpoll").textContent = STATE.lastPollAt ? "last checked " + timeAgo(STATE.lastPollAt) : "not checked yet";
 
   const list = $("#list");
-  list.replaceChildren(
-    ...(prospects.length ? prospects.map(card) : [el("div", { className: "empty", textContent: "No prospects yet." })]),
-  );
+  if (!prospects.length) {
+    list.replaceChildren(el("div", { className: "empty", textContent: "No prospects yet." }));
+    return;
+  }
+
+  const collapsed = collapsedSet();
+  const nodes = [];
+  for (const sec of SECTIONS) {
+    const items = prospects.filter((p) => sec.statuses.includes(p.effectiveStatus));
+    if (!items.length) continue;
+
+    const isCollapsed = collapsed.has(sec.key) || (!collapsed.has("!" + sec.key) && !sec.defaultOpen);
+    const body = el("div", { className: "secbody" }, items.map(card));
+    body.hidden = isCollapsed;
+
+    const arrow = el("span", { className: "secarrow", textContent: isCollapsed ? "▸" : "▾" });
+    const head = el("button", { className: "sechead sec-" + sec.key, type: "button" }, [
+      arrow,
+      el("span", { className: "sectitle", textContent: sec.title }),
+      el("span", { className: "seccount", textContent: items.length }),
+    ]);
+    head.onclick = () => {
+      const c = collapsedSet();
+      if (body.hidden) {
+        c.delete(sec.key);
+        c.add("!" + sec.key); // remember an explicit "open" against a default-closed section
+      } else {
+        c.add(sec.key);
+        c.delete("!" + sec.key);
+      }
+      saveCollapsed(c);
+      body.hidden = !body.hidden;
+      arrow.textContent = body.hidden ? "▸" : "▾";
+    };
+
+    nodes.push(el("section", { className: "sec" }, [head, body]));
+  }
+  list.replaceChildren(...nodes);
 }
 
 function card(p) {
@@ -131,18 +191,19 @@ function card(p) {
       : null;
   const logBtn = () => btn("Log a call", "", () => openCall(p));
 
+  const add = (...nodes) => actions.append(...nodes.filter(Boolean));
   if (p.effectiveStatus === "draft") {
-    actions.append(emailBtn("Send first email", "primary"));
+    add(emailBtn("Send first email", "primary"));
   } else if (p.effectiveStatus === "follow_up_due") {
-    if (p.nextActionChannel === "phone") {
-      actions.append(callBtn("primary"), logBtn(), emailBtn("Email instead", ""));
+    if (p.nextActionChannel === "phone" && p.phone) {
+      add(callBtn("primary"), logBtn(), emailBtn("Email instead", ""));
     } else {
-      actions.append(emailBtn("Send follow-up", "primary"), logBtn(), callBtn(""));
+      add(emailBtn("Send follow-up", "primary"), logBtn(), callBtn(""));
     }
   } else if (p.effectiveStatus === "awaiting_reply") {
-    actions.append(emailBtn("Send follow-up now", ""), logBtn(), callBtn(""));
+    add(emailBtn("Send follow-up now", ""), logBtn(), callBtn(""));
   } else if (p.effectiveStatus === "replied") {
-    actions.append(emailBtn("Send follow-up", ""), logBtn());
+    add(emailBtn("Send follow-up", ""), logBtn());
   }
 
   const sel = el("select");

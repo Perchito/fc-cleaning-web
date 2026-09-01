@@ -63,6 +63,29 @@ button.primary:hover { background: var(--teal-ink); }
 button:disabled { opacity: .5; cursor: default; }
 .grow { flex: 1; }
 
+.sec { margin-bottom: 1.1rem; }
+.sechead {
+  display: flex; align-items: center; gap: .5rem; width: 100%;
+  background: transparent; border: none; border-bottom: 2px solid var(--line);
+  padding: .3rem .1rem .5rem; margin-bottom: .7rem; cursor: pointer;
+  font-size: .95rem; font-weight: 700; color: var(--ink); text-align: left;
+}
+.sechead:hover { background: transparent; }
+.secarrow { color: var(--muted); font-size: .8rem; width: .9rem; }
+.sectitle { flex: 1; }
+.seccount {
+  font-size: .75rem; font-weight: 700; background: var(--slate-bg); color: var(--muted);
+  border-radius: 999px; padding: .1rem .5rem; min-width: 1.4rem; text-align: center;
+}
+.sechead.sec-replied { border-bottom-color: var(--green); }
+.sechead.sec-replied .seccount { background: var(--green-bg); color: var(--green); }
+.sechead.sec-followup { border-bottom-color: var(--amber); }
+.sechead.sec-followup .seccount { background: var(--amber-bg); color: var(--amber); }
+.sechead.sec-awaiting { border-bottom-color: var(--blue); }
+.sechead.sec-awaiting .seccount { background: var(--blue-bg); color: var(--blue); }
+.sechead.sec-attention { border-bottom-color: var(--red); }
+.sechead.sec-attention .seccount { background: var(--red-bg); color: var(--red); }
+
 .card {
   background: var(--card);
   border: 1px solid var(--line);
