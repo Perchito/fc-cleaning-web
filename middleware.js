@@ -32,6 +32,10 @@ export default function middleware(req) {
     headers: {
       "WWW-Authenticate": 'Basic realm="FC Outreach", charset="UTF-8"',
       "Cache-Control": "no-store",
+      "X-Debug-HasPass": pass ? "yes" : "no",
+      "X-Debug-HasUser": process.env.OPS_USER ? "yes" : "no",
+      "X-Debug-GotAuth": header ? "yes" : "no",
+      "X-Debug-AuthScheme": header.split(" ")[0] || "none",
     },
   });
 }
