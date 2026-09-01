@@ -20,7 +20,13 @@ vercel.json             /ops rewrite + daily cron + function maxDuration (repo r
 | `GET /api/outreach/draft?id=` | build the next email (initial or follow-up) |
 | `POST /api/outreach/send` | `{id,subject,text}` — sends + logs, threaded |
 | `POST /api/outreach/status` | `{id,status?,notes?}` |
+| `POST /api/outreach/call` | `{id,note?,outcome?}` — log a phone follow-up |
 | `POST /api/outreach/poll` | check the inbox now |
+
+Prospect fields include `address`, `location`, `phone`, `calls[]`, and
+`preferredChannel` (`"email"`/`"phone"`, optional override). The dashboard
+shows a next-action recommendation: first nudge by email, subsequent nudges
+by phone (escalation), with a suggested date = last contact + interval.
 | `GET  /api/outreach/cron` | daily job (Vercel Cron) — poll + digest email; auth = `Bearer $CRON_SECRET` |
 
 ## Storage

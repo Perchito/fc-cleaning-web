@@ -2,7 +2,7 @@ const API = "/api/outreach";
 const $ = (s, r = document) => r.querySelector(s);
 const el = (t, props = {}, kids = []) => {
   const n = Object.assign(document.createElement(t), props);
-  for (const k of [].concat(kids)) n.append(k);
+  for (const k of [].concat(kids)) if (k != null) n.append(k);
   return n;
 };
 
@@ -28,10 +28,7 @@ function toast(msg, ms = 3200) {
 }
 
 async function api(path, opts) {
-  const r = await fetch(API + path, {
-    headers: { "Content-Type": "application/json" },
-    ...opts,
-  });
+  const r = await fetch(API + path, { headers: { "Content-Type": "application/json" }, ...opts });
   const data = await r.json().catch(() => ({}));
   if (!r.ok) throw new Error(data.error || r.statusText);
   return data;
@@ -40,6 +37,20 @@ async function api(path, opts) {
 async function refresh() {
   STATE = await api("/prospects");
   render();
+}
+
+function fmtDate(iso) {
+  if (!iso) return "";
+  return new Date(iso).toLocaleDateString("en-GB", { day: "numeric", month: "short" });
+}
+function timeAgo(iso) {
+  const s = (Date.now() - new Date(iso)) / 1000;
+  if (s < 90) return "just now";
+  const m = s / 60;
+  if (m < 90) return Math.round(m) + " min ago";
+  const h = m / 60;
+  if (h < 36) return Math.round(h) + "h ago";
+  return Math.round(h / 24) + "d ago";
 }
 
 function render() {
@@ -51,16 +62,10 @@ function render() {
     ...order
       .filter((s) => counts[s])
       .map((s) =>
-        el("span", { className: "chip" }, [
-          el("b", { textContent: counts[s] }),
-          document.createTextNode(" " + STATUS_LABEL[s]),
-        ]),
+        el("span", { className: "chip" }, [el("b", { textContent: counts[s] }), " " + STATUS_LABEL[s]]),
       ),
   );
-
-  $("#lastpoll").textContent = STATE.lastPollAt
-    ? "last checked " + timeAgo(STATE.lastPollAt)
-    : "not checked yet";
+  $("#lastpoll").textContent = STATE.lastPollAt ? "last checked " + timeAgo(STATE.lastPollAt) : "not checked yet";
 
   const list = $("#list");
   list.replaceChildren(
@@ -77,40 +82,68 @@ function card(p) {
         el("div", { className: "biz", textContent: p.business }),
         el("div", { className: "email", textContent: p.email }),
       ]),
-      el("span", {
-        className: "badge b-" + p.effectiveStatus,
-        textContent: STATUS_LABEL[p.effectiveStatus] || p.effectiveStatus,
-      }),
+      el("span", { className: "badge b-" + p.effectiveStatus, textContent: STATUS_LABEL[p.effectiveStatus] || p.effectiveStatus }),
     ]),
   );
 
+  // location / address / phone
+  const loc = [p.location, p.address].filter(Boolean).join(" · ");
+  if (loc) c.append(el("div", { className: "meta", textContent: "📍 " + loc }));
+  if (p.phone)
+    c.append(
+      el("div", { className: "meta" }, [
+        "📞 ",
+        el("a", { href: "tel:" + p.phone.replace(/\s+/g, ""), textContent: p.phone, className: "tellink" }),
+      ]),
+    );
+
+  // history
   const bits = [];
-  if (p.lastSendAt)
-    bits.push(`${p.lastSendType === "initial" ? "First email" : "Follow-up"} ${timeAgo(p.lastSendAt)}`);
-  if (p.effectiveStatus === "awaiting_reply" && p.daysUntilFollowUp != null)
-    bits.push(`follow-up suggested in ${Math.max(0, p.daysUntilFollowUp)}d`);
-  if (p.followUpsSent) bits.push(`${p.followUpsSent} follow-up${p.followUpsSent === 1 ? "" : "s"} sent`);
-  if (p.effectiveStatus === "follow_up_due")
-    bits.push(`${p.followUpsRemaining} follow-up${p.followUpsRemaining === 1 ? "" : "s"} left`);
+  if (p.lastContactAt) bits.push(`Last contact: ${p.lastContactType} ${timeAgo(p.lastContactAt)}`);
+  if (p.callsMade) bits.push(`${p.callsMade} call${p.callsMade === 1 ? "" : "s"} logged`);
+  if (p.followUpsSent) bits.push(`${p.followUpsSent} email follow-up${p.followUpsSent === 1 ? "" : "s"}`);
   if (bits.length) c.append(el("div", { className: "meta", textContent: bits.join(" · ") }));
+
+  // next action guidance
+  if (p.effectiveStatus === "awaiting_reply" && p.nextActionChannel) {
+    c.append(
+      el("div", { className: "meta", textContent: `Next: follow up by ${p.nextActionChannel} around ${fmtDate(p.nextActionAt)}` }),
+    );
+  } else if (p.effectiveStatus === "follow_up_due" && p.nextActionChannel) {
+    c.append(
+      el("div", { className: "nextnow" }, [`Follow up now — by ${p.nextActionChannel.toUpperCase()}`]),
+    );
+  }
 
   if (p.replySnippet && p.effectiveStatus === "replied")
     c.append(el("div", { className: "snippet", textContent: p.replySnippet }));
   if (p.bounceReason && p.effectiveStatus === "bounced")
     c.append(el("div", { className: "snippet", textContent: p.bounceReason }));
   if (p.autoAckAt && p.effectiveStatus !== "replied" && p.effectiveStatus !== "bounced")
-    c.append(
-      el("div", {
-        className: "meta",
-        textContent: `✓ Auto-acknowledgement received ${timeAgo(p.autoAckAt)} — email definitely landed`,
-      }),
-    );
+    c.append(el("div", { className: "meta", textContent: `✓ Auto-acknowledgement ${timeAgo(p.autoAckAt)} — email landed` }));
 
+  // actions
   const actions = el("div", { className: "actions" });
-  if (p.effectiveStatus === "draft") actions.append(btn("Send first email", "primary", () => openDraft(p)));
-  else if (p.effectiveStatus === "follow_up_due") actions.append(btn("Send follow-up", "primary", () => openDraft(p)));
-  else if (p.effectiveStatus === "awaiting_reply") actions.append(btn("Send follow-up now", "", () => openDraft(p)));
-  else if (p.effectiveStatus === "replied") actions.append(btn("Send follow-up", "", () => openDraft(p)));
+  const emailBtn = (label, cls) => btn(label, cls, () => openDraft(p));
+  const callBtn = (cls) =>
+    p.phone
+      ? el("a", { className: "btn " + cls, href: "tel:" + p.phone.replace(/\s+/g, ""), textContent: "Call " + p.phone })
+      : null;
+  const logBtn = () => btn("Log a call", "", () => openCall(p));
+
+  if (p.effectiveStatus === "draft") {
+    actions.append(emailBtn("Send first email", "primary"));
+  } else if (p.effectiveStatus === "follow_up_due") {
+    if (p.nextActionChannel === "phone") {
+      actions.append(callBtn("primary"), logBtn(), emailBtn("Email instead", ""));
+    } else {
+      actions.append(emailBtn("Send follow-up", "primary"), logBtn(), callBtn(""));
+    }
+  } else if (p.effectiveStatus === "awaiting_reply") {
+    actions.append(emailBtn("Send follow-up now", ""), logBtn(), callBtn(""));
+  } else if (p.effectiveStatus === "replied") {
+    actions.append(emailBtn("Send follow-up", ""), logBtn());
+  }
 
   const sel = el("select");
   sel.append(el("option", { value: "", textContent: "Set status…" }));
@@ -146,6 +179,7 @@ function btn(label, cls, onclick) {
   return el("button", { className: cls, textContent: label, onclick });
 }
 
+// --- draft modal ---
 let DRAFT_FOR = null;
 async function openDraft(p) {
   DRAFT_FOR = p;
@@ -157,8 +191,7 @@ async function openDraft(p) {
   dlg.showModal();
   try {
     const d = await api("/draft?id=" + encodeURIComponent(p.id));
-    $("#d-title").textContent =
-      (d.kind === "initial" ? "First email — " : `Follow-up #${d.round} — `) + p.business;
+    $("#d-title").textContent = (d.kind === "initial" ? "First email — " : `Follow-up #${d.round} — `) + p.business;
     $("#d-subject").value = d.subject;
     $("#d-text").value = d.text;
   } catch (e) {
@@ -166,7 +199,6 @@ async function openDraft(p) {
     toast(e.message);
   }
 }
-
 $("#d-send").onclick = async () => {
   if (!DRAFT_FOR) return;
   const b = $("#d-send");
@@ -175,11 +207,7 @@ $("#d-send").onclick = async () => {
   try {
     await api("/send", {
       method: "POST",
-      body: JSON.stringify({
-        id: DRAFT_FOR.id,
-        subject: $("#d-subject").value.trim(),
-        text: $("#d-text").value,
-      }),
+      body: JSON.stringify({ id: DRAFT_FOR.id, subject: $("#d-subject").value.trim(), text: $("#d-text").value }),
     });
     $("#draft").close();
     toast(`Sent to ${DRAFT_FOR.business}`);
@@ -192,6 +220,35 @@ $("#d-send").onclick = async () => {
   }
 };
 
+// --- log-call modal ---
+let CALL_FOR = null;
+function openCall(p) {
+  CALL_FOR = p;
+  $("#c-title").textContent = "Log a call — " + p.business;
+  $("#c-note").value = "";
+  $("#c-outcome").value = "";
+  $("#calllog").showModal();
+}
+$("#c-save").onclick = async () => {
+  if (!CALL_FOR) return;
+  const b = $("#c-save");
+  b.disabled = true;
+  try {
+    await api("/call", {
+      method: "POST",
+      body: JSON.stringify({ id: CALL_FOR.id, note: $("#c-note").value.trim(), outcome: $("#c-outcome").value || null }),
+    });
+    $("#calllog").close();
+    toast(`Call logged for ${CALL_FOR.business}`);
+    refresh();
+  } catch (e) {
+    toast("Failed: " + e.message);
+  } finally {
+    b.disabled = false;
+  }
+};
+
+// --- poll ---
 $("#poll").onclick = async () => {
   const b = $("#poll");
   b.disabled = true;
@@ -212,6 +269,7 @@ $("#poll").onclick = async () => {
   }
 };
 
+// --- add prospect ---
 $("#a-save").onclick = async () => {
   const business = $("#a-biz").value.trim();
   const email = $("#a-email").value.trim();
@@ -219,25 +277,22 @@ $("#a-save").onclick = async () => {
   try {
     await api("/prospects", {
       method: "POST",
-      body: JSON.stringify({ business, email, contactName: $("#a-contact").value.trim() || undefined }),
+      body: JSON.stringify({
+        business,
+        email,
+        contactName: $("#a-contact").value.trim() || undefined,
+        phone: $("#a-phone").value.trim() || undefined,
+        location: $("#a-location").value.trim() || undefined,
+        address: $("#a-address").value.trim() || undefined,
+      }),
     });
-    $("#a-biz").value = $("#a-email").value = $("#a-contact").value = "";
+    for (const id of ["a-biz", "a-email", "a-contact", "a-phone", "a-location", "a-address"]) $("#" + id).value = "";
     toast("Added " + business);
     refresh();
   } catch (e) {
     toast("Failed: " + e.message);
   }
 };
-
-function timeAgo(iso) {
-  const s = (Date.now() - new Date(iso)) / 1000;
-  if (s < 90) return "just now";
-  const m = s / 60;
-  if (m < 90) return Math.round(m) + " min ago";
-  const h = m / 60;
-  if (h < 36) return Math.round(h) + "h ago";
-  return Math.round(h / 24) + "d ago";
-}
 
 refresh().catch((e) => toast("Load failed: " + e.message));
 setInterval(() => refresh().catch(() => {}), 120000);

@@ -30,6 +30,11 @@
       <input id="a-biz" placeholder="Business name" />
       <input id="a-email" type="email" placeholder="email@business.co.uk" />
       <input id="a-contact" placeholder="Contact name (optional)" />
+    </div>
+    <div class="row">
+      <input id="a-phone" placeholder="Phone (optional)" />
+      <input id="a-location" placeholder="Area / town (optional)" />
+      <input id="a-address" placeholder="Street address + postcode (optional)" />
       <button id="a-save">Add</button>
     </div>
     <p class="hint">Added as a draft — you send the first email from its card.</p>
@@ -49,6 +54,29 @@
       <div class="modal-f">
         <button value="cancel">Cancel</button>
         <button class="primary" id="d-send" value="send" type="button">Send email</button>
+      </div>
+    </form>
+  </dialog>
+
+  <dialog id="calllog">
+    <form method="dialog">
+      <div class="modal-h" id="c-title">Log a call</div>
+      <div class="modal-b">
+        <label>Outcome</label>
+        <select id="c-outcome">
+          <option value="">—</option>
+          <option value="no answer">No answer</option>
+          <option value="left message">Left a message</option>
+          <option value="spoke - interested">Spoke — interested</option>
+          <option value="spoke - not now">Spoke — not right now</option>
+          <option value="spoke - not interested">Spoke — not interested</option>
+        </select>
+        <label>Notes</label>
+        <textarea id="c-note" style="min-height:6rem" placeholder="What was said, next step…"></textarea>
+      </div>
+      <div class="modal-f">
+        <button value="cancel">Cancel</button>
+        <button class="primary" id="c-save" value="save" type="button">Save call</button>
       </div>
     </form>
   </dialog>

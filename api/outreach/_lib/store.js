@@ -17,10 +17,10 @@ export async function load() {
       err?.name === "BlobNotFoundError" || /not.*found|404/i.test(String(err?.message));
     if (!missing) throw err;
   }
-  if (r?.stream) return await new Response(r.stream).json();
+  if (r?.stream) return normalise(await new Response(r.stream).json());
 
   // Blob doesn't exist yet — first run. Seed it from the bundled snapshot.
-  const initial = structuredClone(seed);
+  const initial = normalise(structuredClone(seed));
   await save(initial);
   return initial;
 }
@@ -32,6 +32,17 @@ export async function save(db) {
     addRandomSuffix: false,
     allowOverwrite: true,
   });
+}
+
+// Backfill fields added after a prospect was first stored.
+function normalise(db) {
+  for (const p of db.prospects || []) {
+    p.address ??= null;
+    p.location ??= null;
+    p.phone ??= null;
+    p.calls ??= [];
+  }
+  return db;
 }
 
 export function nowISO() {
@@ -56,37 +67,68 @@ export function lastSend(p) {
   return p.sends.reduce((a, b) => (new Date(a.sentAt) > new Date(b.sentAt) ? a : b));
 }
 
+/** Latest outbound touch of any kind — email or phone call. */
+export function lastContact(p) {
+  const events = [
+    ...(p.sends || []).map((s) => ({ at: s.sentAt, type: s.type === "initial" ? "initial email" : "email follow-up" })),
+    ...(p.calls || []).map((c) => ({ at: c.at, type: "phone call" })),
+  ].filter((e) => e.at);
+  if (!events.length) return null;
+  return events.reduce((a, b) => (new Date(a.at) > new Date(b.at) ? a : b));
+}
+
+/** Follow-up attempts made so far (excludes the first email). */
+export function attemptsMade(p) {
+  return (p.followUpsSent ?? 0) + (p.calls?.length ?? 0);
+}
+
+/** Which channel the next nudge should use: first nudge email, then phone. */
+export function nextChannel(p) {
+  if (p.preferredChannel === "phone" || p.preferredChannel === "email") return p.preferredChannel;
+  return attemptsMade(p) >= 1 ? "phone" : "email";
+}
+
 export function effectiveStatus(p) {
   const terminal = ["replied", "bounced", "won", "lost", "unsubscribed", "draft"];
   if (terminal.includes(p.status)) return p.status;
-  const ls = lastSend(p);
-  if (!ls) return "draft";
-  const age = daysBetween(ls.sentAt, nowISO());
+  const lc = lastContact(p);
+  if (!lc) return "draft";
+  const age = daysBetween(lc.at, nowISO());
   const interval = p.followUpIntervalDays ?? config.followUpIntervalDays;
   const max = p.maxFollowUps ?? config.maxFollowUps;
-  if (age >= interval && (p.followUpsSent ?? 0) < max) return "follow_up_due";
+  if (age >= interval && attemptsMade(p) < max) return "follow_up_due";
   return "awaiting_reply";
 }
 
 export function decorate(p) {
+  const lc = lastContact(p);
   const ls = lastSend(p);
   const eff = effectiveStatus(p);
   const interval = p.followUpIntervalDays ?? config.followUpIntervalDays;
+  const channel = nextChannel(p);
+  const nextActionAt = lc ? new Date(new Date(lc.at).getTime() + interval * 86_400_000).toISOString() : null;
   return {
     ...p,
     effectiveStatus: eff,
+    lastContactAt: lc?.at ?? null,
+    lastContactType: lc?.type ?? null,
     lastSendAt: ls?.sentAt ?? null,
     lastSendType: ls?.type ?? null,
-    daysSinceLastSend: ls ? Math.floor(daysBetween(ls.sentAt, nowISO())) : null,
+    daysSinceLastContact: lc ? Math.floor(daysBetween(lc.at, nowISO())) : null,
     daysUntilFollowUp:
-      ls && eff === "awaiting_reply" ? Math.ceil(interval - daysBetween(ls.sentAt, nowISO())) : null,
-    followUpsRemaining: (p.maxFollowUps ?? config.maxFollowUps) - (p.followUpsSent ?? 0),
+      lc && eff === "awaiting_reply" ? Math.ceil(interval - daysBetween(lc.at, nowISO())) : null,
+    nextActionChannel: eff === "awaiting_reply" || eff === "follow_up_due" ? channel : null,
+    nextActionAt: eff === "awaiting_reply" ? nextActionAt : eff === "follow_up_due" ? nowISO() : null,
+    callsMade: p.calls?.length ?? 0,
+    followUpsRemaining: (p.maxFollowUps ?? config.maxFollowUps) - attemptsMade(p),
   };
 }
 
 export function getProspect(db, id) {
   return db.prospects.find((p) => p.id === id);
 }
+
+const FIELDS = ["business", "contactName", "source", "address", "location", "phone", "notes", "preferredChannel"];
 
 export function upsertProspect(db, data) {
   const id = data.id || slugify(data.business);
@@ -98,11 +140,16 @@ export function upsertProspect(db, data) {
       email: String(data.email).toLowerCase().trim(),
       contactName: data.contactName || null,
       source: data.source || null,
+      address: data.address || null,
+      location: data.location || null,
+      phone: data.phone || null,
+      preferredChannel: data.preferredChannel || null,
       tags: data.tags || [],
       status: "draft",
       followUpIntervalDays: data.followUpIntervalDays ?? config.followUpIntervalDays,
       maxFollowUps: data.maxFollowUps ?? config.maxFollowUps,
       sends: [],
+      calls: [],
       followUpsSent: 0,
       lastReplyAt: null,
       replySnippet: null,
@@ -117,13 +164,9 @@ export function upsertProspect(db, data) {
     };
     db.prospects.push(p);
   } else {
-    Object.assign(p, {
-      business: data.business ?? p.business,
-      email: (data.email ?? p.email).toLowerCase().trim(),
-      contactName: data.contactName ?? p.contactName,
-      notes: data.notes ?? p.notes,
-      updatedAt: nowISO(),
-    });
+    if (data.email) p.email = String(data.email).toLowerCase().trim();
+    for (const f of FIELDS) if (data[f] !== undefined) p[f] = data[f];
+    p.updatedAt = nowISO();
   }
   return p;
 }

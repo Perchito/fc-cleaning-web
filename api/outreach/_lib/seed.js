@@ -1,6 +1,7 @@
-// First-run snapshot for the Blob store (the 5 prospects contacted 2026-08-31).
+// First-run snapshot for the Blob store.
+// 5 prospects contacted 2026-08-31 + 5 family-owned prospects added 2026-09-01.
 export const seed = {
-  "lastPollAt": null,
+  "lastPollAt": "2026-09-01T07:00:07.411Z",
   "prospects": [
     {
       "id": "ancoats-coffee-co",
@@ -34,7 +35,12 @@ export const seed = {
       "updatedAt": "2026-08-31T22:16:31.456Z",
       "autoAckAt": "2026-08-31T16:48:45.000Z",
       "autoAckSnippet": "Hey,\n\nThanks for your message!\n\nJust a follow-up to let you know your email has been received and a member of\nthe team will get back to you very soon.\n\nExpect a response in within 2-3 working days.\n\nFor anything urgent, drop us a message on our Instagram or pop in and see us.\n\nThanks,\nAncoats Coffee Co \n\n--\n\nAncoats Coffee Co.\nFollow us: Website [http://ancoats-coffee.co.uk/] | Facebook \n[https://",
-      "autoAckMessageId": "cak3z6foeghjbap9njpc2fqv2hmwv-9pajqtbx1ntythkx+l1tg@mail.gmail.com"
+      "autoAckMessageId": "cak3z6foeghjbap9njpc2fqv2hmwv-9pajqtbx1ntythkx+l1tg@mail.gmail.com",
+      "location": "Ancoats",
+      "address": "Unit 9, Royal Mills, 17 Redhill Street, Manchester M4 5BA",
+      "phone": "0161 228 3211",
+      "preferredChannel": null,
+      "calls": []
     },
     {
       "id": "cotton",
@@ -65,7 +71,12 @@ export const seed = {
       "bounceReason": null,
       "notes": "",
       "createdAt": "2026-08-31T14:46:00.000Z",
-      "updatedAt": "2026-08-31T14:46:00.000Z"
+      "updatedAt": "2026-08-31T14:46:00.000Z",
+      "location": "Ancoats",
+      "address": "Hallé St Peter's, Blossom Street, Ancoats, Manchester M4 6BF",
+      "phone": null,
+      "preferredChannel": null,
+      "calls": []
     },
     {
       "id": "bay-horse-tavern",
@@ -96,7 +107,12 @@ export const seed = {
       "bounceReason": null,
       "notes": "",
       "createdAt": "2026-08-31T14:46:00.000Z",
-      "updatedAt": "2026-08-31T14:46:00.000Z"
+      "updatedAt": "2026-08-31T14:46:00.000Z",
+      "location": "Northern Quarter",
+      "address": "35-37 Thomas Street, Manchester M4 1NA",
+      "phone": "0161 669 5799",
+      "preferredChannel": null,
+      "calls": []
     },
     {
       "id": "bundobust",
@@ -130,7 +146,12 @@ export const seed = {
       "updatedAt": "2026-08-31T22:16:31.456Z",
       "autoAckAt": "2026-08-31T16:52:04.000Z",
       "autoAckSnippet": "Thanks for contacting Bundobust... Re: Kitchen cleaning for Bundobust",
-      "autoAckMessageId": "calh8o+zdki1p4oivt3jpwpyjywrmvckiujv-+8qtm+efrpqfqg@mail.gmail.com"
+      "autoAckMessageId": "calh8o+zdki1p4oivt3jpwpyjywrmvckiujv-+8qtm+efrpqfqg@mail.gmail.com",
+      "location": "Piccadilly",
+      "address": "61 Piccadilly, Manchester M1 2AG",
+      "phone": "0161 359 6757",
+      "preferredChannel": null,
+      "calls": []
     },
     {
       "id": "half-dozen-other",
@@ -160,7 +181,172 @@ export const seed = {
       "bounceReason": null,
       "notes": "",
       "createdAt": "2026-08-31T14:46:00.000Z",
-      "updatedAt": "2026-08-31T14:46:00.000Z"
+      "updatedAt": "2026-08-31T14:46:00.000Z",
+      "location": "Circle Square",
+      "address": "Circle Square, 1 Symphony Park, Manchester M1 7FS",
+      "phone": null,
+      "preferredChannel": null,
+      "calls": []
+    },
+    {
+      "id": "the-pearl",
+      "business": "The Pearl",
+      "email": "hello@thepearlmcr.com",
+      "contactName": "Sam Taylor & Melissa Gage",
+      "source": "thepearlmcr.com/contact",
+      "address": "425 Bury New Road, Prestwich, Manchester M25 1AF",
+      "location": "Prestwich",
+      "phone": "0161 526 3667",
+      "preferredChannel": null,
+      "tags": [
+        "restaurant",
+        "british",
+        "family-run"
+      ],
+      "status": "draft",
+      "followUpIntervalDays": 5,
+      "maxFollowUps": 2,
+      "sends": [],
+      "calls": [],
+      "followUpsSent": 0,
+      "lastReplyAt": null,
+      "replySnippet": null,
+      "replyMessageId": null,
+      "autoAckAt": null,
+      "autoAckSnippet": null,
+      "autoAckMessageId": null,
+      "bounceReason": null,
+      "notes": "Husband-and-wife team, community-crowdfunded. Owner-run.",
+      "createdAt": "2026-09-01T00:00:00.000Z",
+      "updatedAt": "2026-09-01T00:00:00.000Z"
+    },
+    {
+      "id": "scrumptious-tea-rooms",
+      "business": "Scrumptious Tea Rooms",
+      "email": "c12jue@icloud.com",
+      "contactName": null,
+      "source": "scrumptioustearooms.com",
+      "address": "8 Church Road, Urmston, Manchester M41 9BU",
+      "location": "Urmston",
+      "phone": "0161 425 3400",
+      "preferredChannel": null,
+      "tags": [
+        "tearoom",
+        "cafe",
+        "family-run"
+      ],
+      "status": "draft",
+      "followUpIntervalDays": 5,
+      "maxFollowUps": 2,
+      "sends": [],
+      "calls": [],
+      "followUpsSent": 0,
+      "lastReplyAt": null,
+      "replySnippet": null,
+      "replyMessageId": null,
+      "autoAckAt": null,
+      "autoAckSnippet": null,
+      "autoAckMessageId": null,
+      "bounceReason": null,
+      "notes": "Family run tea room. Owner uses a personal iCloud address — deals with everything directly.",
+      "createdAt": "2026-09-01T00:00:00.000Z",
+      "updatedAt": "2026-09-01T00:00:00.000Z"
+    },
+    {
+      "id": "olio-didsbury",
+      "business": "OLIO Didsbury",
+      "email": "info@olioflames.co.uk",
+      "contactName": null,
+      "source": "olioflames.co.uk",
+      "address": "747 Wilmslow Road, Didsbury, Manchester M20 6RN",
+      "location": "Didsbury",
+      "phone": "0161 400 8112",
+      "preferredChannel": null,
+      "tags": [
+        "restaurant",
+        "mediterranean",
+        "family-run"
+      ],
+      "status": "draft",
+      "followUpIntervalDays": 5,
+      "maxFollowUps": 2,
+      "sends": [],
+      "calls": [],
+      "followUpsSent": 0,
+      "lastReplyAt": null,
+      "replySnippet": null,
+      "replyMessageId": null,
+      "autoAckAt": null,
+      "autoAckSnippet": null,
+      "autoAckMessageId": null,
+      "bounceReason": null,
+      "notes": "Family-run Mediterranean / Turkish / Italian.",
+      "createdAt": "2026-09-01T00:00:00.000Z",
+      "updatedAt": "2026-09-01T00:00:00.000Z"
+    },
+    {
+      "id": "eden-monton",
+      "business": "Eden Monton",
+      "email": "bookings@edenmonton.co.uk",
+      "contactName": null,
+      "source": "edenmonton.co.uk/contact",
+      "address": "233-235 Monton Road, Eccles, Manchester M30 9PS",
+      "location": "Monton",
+      "phone": "0161 222 6412",
+      "preferredChannel": null,
+      "tags": [
+        "restaurant",
+        "italian",
+        "family-run"
+      ],
+      "status": "draft",
+      "followUpIntervalDays": 5,
+      "maxFollowUps": 2,
+      "sends": [],
+      "calls": [],
+      "followUpsSent": 0,
+      "lastReplyAt": null,
+      "replySnippet": null,
+      "replyMessageId": null,
+      "autoAckAt": null,
+      "autoAckSnippet": null,
+      "autoAckMessageId": null,
+      "bounceReason": null,
+      "notes": "Award-winning family-run Italian in Monton Village.",
+      "createdAt": "2026-09-01T00:00:00.000Z",
+      "updatedAt": "2026-09-01T00:00:00.000Z"
+    },
+    {
+      "id": "backs-deli",
+      "business": "Back's Deli",
+      "email": "shop@backsdeli.com",
+      "contactName": null,
+      "source": "backsdeli.com",
+      "address": "62 Heaton Moor Road, Heaton Moor, Stockport SK4 4NZ",
+      "location": "Heaton Moor",
+      "phone": "0161 432 3309",
+      "preferredChannel": null,
+      "tags": [
+        "deli",
+        "independent",
+        "family-owned"
+      ],
+      "status": "draft",
+      "followUpIntervalDays": 5,
+      "maxFollowUps": 2,
+      "sends": [],
+      "calls": [],
+      "followUpsSent": 0,
+      "lastReplyAt": null,
+      "replySnippet": null,
+      "replyMessageId": null,
+      "autoAckAt": null,
+      "autoAckSnippet": null,
+      "autoAckMessageId": null,
+      "bounceReason": null,
+      "notes": "Independent family-owned delicatessen — deli counter, prep area, wines.",
+      "createdAt": "2026-09-01T00:00:00.000Z",
+      "updatedAt": "2026-09-01T00:00:00.000Z"
     }
   ]
 };

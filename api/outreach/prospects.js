@@ -1,4 +1,4 @@
-import { load, save, decorate, upsertProspect } from "./_lib/store.js";
+import { load, save, decorate, upsertProspect, getProspect } from "./_lib/store.js";
 
 export default async function handler(req, res) {
   if (req.method === "GET") {
@@ -16,10 +16,13 @@ export default async function handler(req, res) {
   }
 
   if (req.method === "POST") {
-    const { business, email } = req.body || {};
-    if (!business || !email) return res.status(400).json({ error: "business and email required" });
+    const body = req.body || {};
     const db = await load();
-    const p = upsertProspect(db, req.body);
+    const existing = body.id && getProspect(db, body.id);
+    // New prospect needs business + email; updating an existing one can be partial.
+    if (!existing && (!body.business || !body.email))
+      return res.status(400).json({ error: "business and email required" });
+    const p = upsertProspect(db, body);
     await save(db);
     return res.json({ ok: true, prospect: decorate(p) });
   }

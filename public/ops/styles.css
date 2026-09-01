@@ -92,7 +92,18 @@ button:disabled { opacity: .5; cursor: default; }
   border-left: 3px solid var(--teal);
 }
 .actions { display: flex; flex-wrap: wrap; gap: .4rem; margin-top: .7rem; }
-.actions select, .actions button { font-size: .82rem; padding: .4rem .6rem; }
+.actions select, .actions button, .actions a.btn { font-size: .82rem; padding: .4rem .6rem; }
+a.btn {
+  display: inline-block; border: 1px solid var(--line); background: #fff; color: var(--ink);
+  border-radius: .55rem; text-decoration: none; line-height: 1.4;
+}
+a.btn:hover { background: var(--slate-bg); }
+a.btn.primary { background: var(--teal); border-color: var(--teal); color: #fff; }
+a.tellink { color: var(--teal-ink); text-decoration: none; font-weight: 600; }
+.nextnow {
+  margin-top: .55rem; background: var(--amber-bg); color: var(--amber);
+  border-radius: .5rem; padding: .4rem .6rem; font-size: .84rem; font-weight: 650;
+}
 .notes {
   width: 100%; margin-top: .5rem; border: 1px solid var(--line); border-radius: .5rem;
   padding: .45rem .55rem; font: inherit; font-size: .84rem; resize: vertical; min-height: 2.2rem;
