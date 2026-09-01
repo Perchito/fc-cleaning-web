@@ -105,8 +105,8 @@ export default function Hero() {
               Clean, bright commercial interior
             </p>
             <img
-              src="/images/office-cleaning-hero.jpg"
-              alt="Clean, bright commercial kitchen and restaurant interior"
+              src="/images/hero-team-cleaning.webp"
+              alt="FC Cleaning Company team cleaning a bright commercial kitchen and dining space"
               className="absolute inset-0 h-full w-full object-cover"
               loading="eager"
               fetchpriority="high"

@@ -1,0 +1,7 @@
+User-agent: *
+Allow: /
+Disallow: /ops
+Disallow: /api/
+Disallow: /thank-you
+
+Sitemap: https://fccleaningcompany.com/sitemap.xml

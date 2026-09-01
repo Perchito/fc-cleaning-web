@@ -10,6 +10,8 @@ import Services from './pages/Services.jsx'
 import Faq from './pages/Faq.jsx'
 import Contact from './pages/Contact.jsx'
 import ThankYou from './pages/ThankYou.jsx'
+import Privacy from './pages/Privacy.jsx'
+import Terms from './pages/Terms.jsx'
 
 // Fast crossfade + slight rise between pages. Outgoing page is lifted out of the
 // layout (absolute) so both pages never stack in flow during the swap.
@@ -33,6 +35,8 @@ function AnimatedRoutes() {
         <Route path="/faq" element={<Faq />} />
         <Route path="/contact" element={<Contact />} />
         <Route path="/thank-you" element={<ThankYou />} />
+        <Route path="/privacy" element={<Privacy />} />
+        <Route path="/terms" element={<Terms />} />
         <Route path="*" element={<Home />} />
       </Routes>
     </animated.div>

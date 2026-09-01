@@ -98,6 +98,16 @@ export default function About() {
           </Reveal>
 
           <div className="space-y-5">
+            <Reveal delay={60}>
+              <div className="overflow-hidden rounded-2xl">
+                <img
+                  src="/images/about-cleaning.webp"
+                  alt="Professional cleaning a washroom basin and taps to a high standard"
+                  loading="lazy"
+                  className="aspect-[4/3] h-full w-full object-cover"
+                />
+              </div>
+            </Reveal>
             {FEATURES.map((f, i) => (
               <Reveal key={f.title} delay={i * 120}>
                 <div className="flex gap-5 rounded-2xl bg-navy-950 p-6 text-white shadow-lg shadow-navy-950/20">

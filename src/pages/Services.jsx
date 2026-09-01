@@ -20,6 +20,8 @@ const SERVICES = [
     ],
     bestFor: 'Best for restaurants, cafés, takeaways & dark kitchens',
     cta: 'Get a Kitchen Cleaning Quote',
+    image: '/images/kitchen-cleaning.webp',
+    imageAlt: 'Sanitising a stainless steel commercial kitchen sink',
   },
   {
     title: 'Restaurant, Pub & Bar Cleaning',
@@ -31,6 +33,8 @@ const SERVICES = [
     ],
     bestFor: 'Best for restaurants, pubs, bars, cafés & bistros',
     cta: 'Book Restaurant & Bar Cleaning',
+    image: '/images/restaurant-bar-cleaning.webp',
+    imageAlt: 'Wiping down a table in a restaurant dining area',
   },
   {
     title: 'Hospitality Deep Cleaning',
@@ -42,6 +46,8 @@ const SERVICES = [
     ],
     bestFor: 'Best for any hospitality venue needing a thorough reset',
     cta: 'Ask About Deep Cleaning',
+    image: '/images/hospitality-deep-cleaning.webp',
+    imageAlt: 'Close-up of a deep clean with gloves and cleaning spray',
   },
   {
     title: 'Washroom & Front-of-House Cleaning',
@@ -53,6 +59,8 @@ const SERVICES = [
     ],
     bestFor: 'Best for venues where customer presentation matters every service',
     cta: 'Get a Venue Cleaning Quote',
+    image: '/images/washroom-cleaning.webp',
+    imageAlt: 'Cleaning a customer washroom sink and surfaces',
   },
 ]
 
@@ -79,8 +87,17 @@ function ServiceBlock({ service, index }) {
         {String(index + 1).padStart(2, '0')}
       </span>
 
-      <div className="mt-5 grid gap-8 lg:grid-cols-2 lg:gap-12">
-        <div>
+      <div className="mt-5 grid gap-8 lg:grid-cols-[0.85fr_1fr_0.85fr] lg:gap-10">
+        <div className={`overflow-hidden rounded-2xl ${dark ? 'order-1' : 'order-1 lg:order-3'}`}>
+          <img
+            src={service.image}
+            alt={service.imageAlt}
+            loading="lazy"
+            className="aspect-[4/3] h-full w-full object-cover"
+          />
+        </div>
+
+        <div className="order-2">
           <h3 className={`text-2xl font-extrabold tracking-tight ${dark ? 'text-white' : 'text-navy-950'}`}>
             {service.title}
           </h3>
@@ -99,7 +116,7 @@ function ServiceBlock({ service, index }) {
           </AnimatedLink>
         </div>
 
-        <div>
+        <div className={dark ? 'order-3' : 'order-3 lg:order-1'}>
           <ul className="space-y-3">
             {service.bullets.map((b) => (
               <li

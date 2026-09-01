@@ -34,18 +34,28 @@ Output goes to `dist/` — deployable to Vercel (vercel.json SPA rewrite include
 - [x] Contact Us (enquiry form → Formspree, contact sidebar, what-to-expect)
 - [x] Thank-you (form confirmation)
 - [x] Floating WhatsApp button (wa.me/447473379928, prefilled message)
-- [ ] Privacy / Terms / 404
+- [x] Privacy / Terms
+- [ ] 404 page (unknown routes currently fall through to Home)
 
 ## Assets
 
 Live in `public/images/` and wired in code:
 
 - `public/images/FC-NO-BG.png` — header + footer logo (`src/components/Logo.jsx`)
-- `public/images/office-cleaning-hero.jpg` — homepage hero (`src/sections/Hero.jsx`)
+- `public/images/hero-team-cleaning.webp` — homepage hero (`src/sections/Hero.jsx`)
+- `public/images/kitchen-cleaning.webp`, `restaurant-bar-cleaning.webp`, `hospitality-deep-cleaning.webp`,
+  `washroom-cleaning.webp` — the four service blocks on `src/pages/Services.jsx`
+- `public/images/about-cleaning.webp` — About page (`src/pages/About.jsx`)
 - Optional: `fc-logo-black-icon.png` from the old repo → `public/favicon.png` (browser tab icon)
 
+**The photos above are stock (Pexels License — free for commercial use, no attribution required),
+picked as placeholders because there's no client work to photograph yet.** Swap every one of them
+for real photos of your own vans, team and finished venues as soon as you have them — genuine
+photography will out-convert stock every time for a hospitality cleaning business. All are already
+compressed to WebP (20–75KB each) — keep new photos under ~150KB at the same dimensions
+(`cwebp -q 78 in.jpg -o out.webp`, or squoosh.app) so mobile load times don't regress.
+
 Tips:
-- Compress the 3.2MB hero to a few hundred KB (squoosh.app, ~80% quality) for fast mobile loading
 - If the logo looks invisible on the dark navy header, it's the dark-artwork variant — either upload
   `fc-logo-white-icon.png` instead (update the path in `src/components/Logo.jsx`) or ask for a white backing chip
 - `FC-NO-BG` shared as `.jpeg` arrives blank — JPEG has no transparency; always use the PNG
