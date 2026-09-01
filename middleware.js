@@ -10,10 +10,11 @@ export default function middleware(req) {
   const { pathname } = new URL(req.url);
   if (pathname === "/api/outreach/cron") return; // self-authenticated
 
-  const user = process.env.OPS_USER || "fc";
-  const pass = process.env.OPS_PASS || "";
+  const user = (process.env.OPS_USER || "fc").trim();
+  const pass = (process.env.OPS_PASS || "").trim();
   const header = req.headers.get("authorization") || "";
 
+  let recvLen = 0;
   if (pass && header.startsWith("Basic ")) {
     let decoded = "";
     try {
@@ -22,8 +23,9 @@ export default function middleware(req) {
       /* fall through to 401 */
     }
     const i = decoded.indexOf(":");
-    const u = decoded.slice(0, i);
-    const p = decoded.slice(i + 1);
+    const u = decoded.slice(0, i).trim();
+    const p = decoded.slice(i + 1).trim();
+    recvLen = p.length;
     if (u === user && p === pass) return; // authorised
   }
 
@@ -32,10 +34,9 @@ export default function middleware(req) {
     headers: {
       "WWW-Authenticate": 'Basic realm="FC Outreach", charset="UTF-8"',
       "Cache-Control": "no-store",
-      "X-Debug-HasPass": pass ? "yes" : "no",
-      "X-Debug-HasUser": process.env.OPS_USER ? "yes" : "no",
-      "X-Debug-GotAuth": header ? "yes" : "no",
-      "X-Debug-AuthScheme": header.split(" ")[0] || "none",
+      "X-Debug-PassLen": String(pass.length),
+      "X-Debug-RecvLen": String(recvLen),
+      "X-Debug-UserEnv": process.env.OPS_USER ? "set" : "default",
     },
   });
 }
