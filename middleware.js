@@ -14,7 +14,6 @@ export default function middleware(req) {
   const pass = (process.env.OPS_PASS || "").trim();
   const header = req.headers.get("authorization") || "";
 
-  let recvLen = 0;
   if (pass && header.startsWith("Basic ")) {
     let decoded = "";
     try {
@@ -23,10 +22,11 @@ export default function middleware(req) {
       /* fall through to 401 */
     }
     const i = decoded.indexOf(":");
-    const u = decoded.slice(0, i).trim();
-    const p = decoded.slice(i + 1).trim();
-    recvLen = p.length;
-    if (u === user && p === pass) return; // authorised
+    if (i > -1) {
+      const u = decoded.slice(0, i).trim();
+      const p = decoded.slice(i + 1).trim();
+      if (u === user && p === pass) return; // authorised
+    }
   }
 
   return new Response("Authentication required.", {
@@ -34,9 +34,6 @@ export default function middleware(req) {
     headers: {
       "WWW-Authenticate": 'Basic realm="FC Outreach", charset="UTF-8"',
       "Cache-Control": "no-store",
-      "X-Debug-PassLen": String(pass.length),
-      "X-Debug-RecvLen": String(recvLen),
-      "X-Debug-UserEnv": process.env.OPS_USER ? "set" : "default",
     },
   });
 }
