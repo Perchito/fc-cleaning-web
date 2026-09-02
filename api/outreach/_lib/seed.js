@@ -5,6 +5,7 @@ export const seed = {
   "prospects": [
     {
       "id": "ancoats-coffee-co",
+      "website": "https://ancoats-coffee.co.uk/",
       "business": "Ancoats Coffee Co.",
       "email": "hello@ancoats-coffee.co.uk",
       "contactName": null,
@@ -44,6 +45,7 @@ export const seed = {
     },
     {
       "id": "cotton",
+      "website": "https://cottonbakery.co.uk/",
       "business": "Cotton Ancoats",
       "email": "hello@cottonbakery.co.uk",
       "contactName": null,
@@ -80,6 +82,7 @@ export const seed = {
     },
     {
       "id": "bay-horse-tavern",
+      "website": "https://thebayhorsetavern.co.uk/",
       "business": "Bay Horse Tavern",
       "email": "info@thebayhorsetavern.co.uk",
       "contactName": null,
@@ -116,6 +119,7 @@ export const seed = {
     },
     {
       "id": "bundobust",
+      "website": "https://bundobust.com/manchester",
       "business": "Bundobust",
       "email": "hello@bundobust.com",
       "contactName": null,
@@ -155,6 +159,7 @@ export const seed = {
     },
     {
       "id": "half-dozen-other",
+      "website": "https://halfdozenother.co.uk/",
       "business": "Half Dozen Other",
       "email": "hello@halfdozenother.co.uk",
       "contactName": null,
@@ -190,6 +195,7 @@ export const seed = {
     },
     {
       "id": "the-pearl",
+      "website": "https://thepearlmcr.com/",
       "business": "The Pearl",
       "email": "hello@thepearlmcr.com",
       "contactName": "Sam Taylor & Melissa Gage",
@@ -222,6 +228,7 @@ export const seed = {
     },
     {
       "id": "scrumptious-tea-rooms",
+      "website": "https://scrumptioustearooms.com/",
       "business": "Scrumptious Tea Rooms",
       "email": "c12jue@icloud.com",
       "contactName": null,
@@ -254,6 +261,7 @@ export const seed = {
     },
     {
       "id": "olio-didsbury",
+      "website": "https://olioflames.co.uk/",
       "business": "OLIO Didsbury",
       "email": "info@olioflames.co.uk",
       "contactName": null,
@@ -286,6 +294,7 @@ export const seed = {
     },
     {
       "id": "eden-monton",
+      "website": "https://edenmonton.co.uk/",
       "business": "Eden Monton",
       "email": "bookings@edenmonton.co.uk",
       "contactName": null,
@@ -318,6 +327,7 @@ export const seed = {
     },
     {
       "id": "backs-deli",
+      "website": "https://backsdeli.com/",
       "business": "Back's Deli",
       "email": "shop@backsdeli.com",
       "contactName": null,

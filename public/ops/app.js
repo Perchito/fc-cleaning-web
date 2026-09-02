@@ -156,6 +156,19 @@ function card(p) {
         el("a", { href: "tel:" + p.phone.replace(/\s+/g, ""), textContent: p.phone, className: "tellink" }),
       ]),
     );
+  if (p.website)
+    c.append(
+      el("div", { className: "meta" }, [
+        "🌐 ",
+        el("a", {
+          href: p.website,
+          target: "_blank",
+          rel: "noreferrer",
+          textContent: p.website.replace(/^https?:\/\//, "").replace(/\/$/, ""),
+          className: "tellink",
+        }),
+      ]),
+    );
 
   // history
   const bits = [];
@@ -345,9 +358,11 @@ $("#a-save").onclick = async () => {
         phone: $("#a-phone").value.trim() || undefined,
         location: $("#a-location").value.trim() || undefined,
         address: $("#a-address").value.trim() || undefined,
+        website: $("#a-website").value.trim() || undefined,
       }),
     });
-    for (const id of ["a-biz", "a-email", "a-contact", "a-phone", "a-location", "a-address"]) $("#" + id).value = "";
+    for (const id of ["a-biz", "a-email", "a-contact", "a-phone", "a-location", "a-address", "a-website"])
+      $("#" + id).value = "";
     toast("Added " + business);
     refresh();
   } catch (e) {

@@ -14,7 +14,11 @@ export default function useInViewOnce(options) {
           observer.disconnect()
         }
       },
-      options || { threshold: 0.2, rootMargin: '0px 0px -8% 0px' },
+      // threshold: 0 fires as soon as a single pixel is on-screen — unlike an area-based
+      // threshold (e.g. 0.2), this stays correct no matter how tall the revealed content is.
+      // A tall block (a legal page, a service card with a photo) can never get 20% of its
+      // *area* on-screen on a normal viewport, so a >0 threshold silently never fires.
+      options || { threshold: 0, rootMargin: '0px 0px -8% 0px' },
     )
     observer.observe(el)
     return () => observer.disconnect()

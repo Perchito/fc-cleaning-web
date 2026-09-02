@@ -40,6 +40,7 @@ function normalise(db) {
     p.address ??= null;
     p.location ??= null;
     p.phone ??= null;
+    p.website ??= null;
     p.calls ??= [];
   }
   return db;
@@ -128,7 +129,7 @@ export function getProspect(db, id) {
   return db.prospects.find((p) => p.id === id);
 }
 
-const FIELDS = ["business", "contactName", "source", "address", "location", "phone", "notes", "preferredChannel"];
+const FIELDS = ["business", "contactName", "source", "address", "location", "phone", "website", "notes", "preferredChannel"];
 
 export function upsertProspect(db, data) {
   const id = data.id || slugify(data.business);
@@ -143,6 +144,7 @@ export function upsertProspect(db, data) {
       address: data.address || null,
       location: data.location || null,
       phone: data.phone || null,
+      website: data.website || null,
       preferredChannel: data.preferredChannel || null,
       tags: data.tags || [],
       status: "draft",
