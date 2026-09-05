@@ -74,6 +74,11 @@ async function researchLeads(existingNames) {
     "service hours, size), notes (one sentence citing what you found and",
     "where). If you can't verify 5 with real emails, return fewer — never",
     "fabricate a business or an email.",
+    "",
+    "Work efficiently — this runs under a time limit. Do one focused search",
+    "per candidate area rather than many broad ones, and fetch only the",
+    "single page on each site most likely to list an email (Contact/About)",
+    "rather than crawling the whole site.",
   ].join("\n");
 
   const r = await fetch("https://api.anthropic.com/v1/messages", {
@@ -86,10 +91,10 @@ async function researchLeads(existingNames) {
     body: JSON.stringify({
       model: MODEL,
       max_tokens: 8000,
-      output_config: { effort: "medium" },
+      output_config: { effort: "low" },
       tools: [
-        { type: "web_search_20260209", name: "web_search", max_uses: 10 },
-        { type: "web_fetch_20260209", name: "web_fetch", max_uses: 10 },
+        { type: "web_search_20260209", name: "web_search", max_uses: 8 },
+        { type: "web_fetch_20260209", name: "web_fetch", max_uses: 8 },
       ],
       messages: [{ role: "user", content: prompt }],
     }),
