@@ -8,7 +8,7 @@
     { "path": "/api/outreach/discover", "schedule": "0 8 * * *" }
   ],
   "functions": {
-    "api/outreach/discover.js": { "maxDuration": 800 },
+    "api/outreach/discover.js": { "maxDuration": 300 },
     "api/outreach/*.js": { "maxDuration": 60 }
   }
 }
