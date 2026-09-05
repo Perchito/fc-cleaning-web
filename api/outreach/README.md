@@ -46,6 +46,7 @@ contacted 2026-08-31). Back it up occasionally via the Blob dashboard.
 | `OPS_PASS` | dashboard password |
 | `CRON_SECRET` | random string — gates the cron endpoint |
 | `DIGEST_TO` | where the daily summary email goes |
+| `DISCOVERY_SECRET` | random string — lets the lead-research cloud agent (`Bearer` auth) list/add prospects at `/api/outreach/prospects` without the dashboard login. Scoped to that one endpoint only — it can't send, change status, or read anything else. |
 
 Optional overrides: `ICLOUD_FROM_ADDRESS`, `ICLOUD_FROM_NAME`, `REPLY_TO`,
 `FOLLOWUP_INTERVAL_DAYS`, `MAX_FOLLOWUPS`, `POSTAL_ADDRESS`, `PHONE`,

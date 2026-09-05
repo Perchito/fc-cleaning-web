@@ -32,7 +32,7 @@ const HOOKS = {
 };
 
 export function draftFollowUp(p, round = 1) {
-  const hook = HOOKS[p.id] || `commercial cleaning for ${p.business}`;
+  const hook = p.hook || HOOKS[p.id] || `commercial cleaning for ${p.business}`;
   const greeting = p.contactName ? `Hi ${p.contactName.split(" ")[0]},` : `Hi,`;
 
   const subject =
@@ -63,7 +63,7 @@ export function draftFollowUp(p, round = 1) {
 }
 
 export function draftInitial(p) {
-  const hook = HOOKS[p.id] || `commercial cleaning for ${p.business}`;
+  const hook = p.hook || HOOKS[p.id] || `commercial cleaning for ${p.business}`;
   const greeting = p.contactName ? `Hi ${p.contactName.split(" ")[0]},` : `Hi,`;
   const body = [
     greeting,
