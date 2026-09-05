@@ -9,15 +9,7 @@ export const config = {
 export default function middleware(req) {
   const { pathname } = new URL(req.url);
   if (pathname === "/api/outreach/cron") return; // self-authenticated
-
-  // The lead-research agent only ever lists/adds prospects (never sends,
-  // never changes status) — gate that one endpoint with its own secret so
-  // it doesn't need the human dashboard login.
-  if (pathname === "/api/outreach/prospects") {
-    const discoverySecret = (process.env.DISCOVERY_SECRET || "").trim();
-    const auth = req.headers.get("authorization") || "";
-    if (discoverySecret && auth === `Bearer ${discoverySecret}`) return;
-  }
+  if (pathname === "/api/outreach/discover") return; // self-authenticated
 
   const user = (process.env.OPS_USER || "fc").trim();
   const pass = (process.env.OPS_PASS || "").trim();

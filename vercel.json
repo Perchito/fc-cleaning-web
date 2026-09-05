@@ -3,7 +3,10 @@
     { "source": "/ops", "destination": "/ops/index.html" },
     { "source": "/((?!api/).*)", "destination": "/index.html" }
   ],
-  "crons": [{ "path": "/api/outreach/cron", "schedule": "0 8 * * *" }],
+  "crons": [
+    { "path": "/api/outreach/cron", "schedule": "0 8 * * *" },
+    { "path": "/api/outreach/discover", "schedule": "0 8 * * *" }
+  ],
   "functions": {
     "api/outreach/*.js": { "maxDuration": 60 }
   }

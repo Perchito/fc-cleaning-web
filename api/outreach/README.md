@@ -23,11 +23,15 @@ vercel.json             /ops rewrite + daily cron + function maxDuration (repo r
 | `POST /api/outreach/call` | `{id,note?,outcome?}` — log a phone follow-up |
 | `POST /api/outreach/poll` | check the inbox now |
 
-Prospect fields include `address`, `location`, `phone`, `calls[]`, and
-`preferredChannel` (`"email"`/`"phone"`, optional override). The dashboard
-shows a next-action recommendation: first nudge by email, subsequent nudges
-by phone (escalation), with a suggested date = last contact + interval.
+Prospect fields include `address`, `location`, `phone`, `calls[]`,
+`hook` (a one-line personalization used in the initial email — set by
+`discover.js` for AI-researched leads, or the static `HOOKS` map in
+`_lib/templates.js` for the hand-picked ones), and `preferredChannel`
+(`"email"`/`"phone"`, optional override). The dashboard shows a
+next-action recommendation: first nudge by email, subsequent nudges by
+phone (escalation), with a suggested date = last contact + interval.
 | `GET  /api/outreach/cron` | daily job (Vercel Cron) — poll + digest email; auth = `Bearer $CRON_SECRET` |
+| `GET  /api/outreach/discover` | daily job (Vercel Cron) — finds up to 5 new hospitality-venue prospects via Claude + web search/fetch and adds them as `status: draft` (never sends); auth = `Bearer $CRON_SECRET` |
 
 ## Storage
 
@@ -44,9 +48,9 @@ contacted 2026-08-31). Back it up occasionally via the Blob dashboard.
 | `ICLOUD_SMTP_PASS` | Apple app-specific password (same source) |
 | `OPS_USER` | dashboard login name (e.g. `fc`) |
 | `OPS_PASS` | dashboard password |
-| `CRON_SECRET` | random string — gates the cron endpoint |
+| `CRON_SECRET` | random string — gates both cron endpoints |
 | `DIGEST_TO` | where the daily summary email goes |
-| `DISCOVERY_SECRET` | random string — lets the lead-research cloud agent (`Bearer` auth) list/add prospects at `/api/outreach/prospects` without the dashboard login. Scoped to that one endpoint only — it can't send, change status, or read anything else. |
+| `ANTHROPIC_API_KEY` | Anthropic API key — used only by `discover.js` (web search + drafting for new leads). Small recurring cost, roughly a few cents per day. |
 
 Optional overrides: `ICLOUD_FROM_ADDRESS`, `ICLOUD_FROM_NAME`, `REPLY_TO`,
 `FOLLOWUP_INTERVAL_DAYS`, `MAX_FOLLOWUPS`, `POSTAL_ADDRESS`, `PHONE`,
@@ -54,8 +58,9 @@ Optional overrides: `ICLOUD_FROM_ADDRESS`, `ICLOUD_FROM_NAME`, `REPLY_TO`,
 
 ## Cron timing
 
-`vercel.json` → `0 8 * * *` = 08:00 **UTC** daily (09:00 UK in summer).
-Hobby plan runs it once a day and may delay it up to ~1 hour.
+`vercel.json` → `0 8 * * *` = 08:00 **UTC** daily (09:00 UK in summer), for
+both `cron` (poll + digest) and `discover` (lead research). Hobby plan runs
+each once a day and may delay it up to ~1 hour.
 
 ## Local dev
 
