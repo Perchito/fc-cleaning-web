@@ -9,10 +9,6 @@ function footer() {
     `Best,`,
     `${config.senderFirstName} C.`,
     `FC Cleaning Company Ltd`,
-    `${config.from.address} | reply to ${config.replyTo} | ${config.phone}`,
-    `${config.website} | ${config.postalAddress}`,
-    ``,
-    `Sent to you as a local business owner. Reply "unsubscribe" and I won't contact you again.`,
   ].join("\n");
 }
 
