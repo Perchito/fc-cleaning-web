@@ -39,6 +39,7 @@ export default async function handler(req, res) {
     const existingNames = db.prospects.map((p) => p.business);
     const added = [];
     let attempts = 0;
+    let consecutiveEmpty = 0;
 
     while (
       added.length < TARGET_COUNT &&
@@ -77,10 +78,15 @@ export default async function handler(req, res) {
         addedThisAttempt++;
       }
 
-      // Nothing new this round — further attempts are unlikely to help
-      // (area's verified-email supply is exhausted for today); stop rather
-      // than burn API calls for no gain.
-      if (addedThisAttempt === 0) break;
+      // One empty round can just be an unlucky search angle — only give up
+      // after several in a row suggest today's verified-email supply is
+      // genuinely exhausted.
+      if (addedThisAttempt === 0) {
+        consecutiveEmpty++;
+        if (consecutiveEmpty >= 3) break;
+      } else {
+        consecutiveEmpty = 0;
+      }
     }
 
     if (added.length) await save(db);
