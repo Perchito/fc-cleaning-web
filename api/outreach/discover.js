@@ -177,11 +177,18 @@ async function researchLeads(existingNames, count, timeoutMs) {
     .join("\n")
     .trim();
 
+  if (process.env.DISCOVER_DEBUG) {
+    console.log("[discover] stop_reason:", data.stop_reason);
+    console.log("[discover] block types:", (data.content || []).map((b) => b.type).join(","));
+    console.log("[discover] text preview:", text.slice(0, 1500));
+  }
+
   const match = text.match(/\[[\s\S]*\]/);
   if (!match) return [];
   try {
     return JSON.parse(match[0]);
-  } catch {
+  } catch (e) {
+    if (process.env.DISCOVER_DEBUG) console.log("[discover] JSON parse failed:", e.message);
     return [];
   }
 }
