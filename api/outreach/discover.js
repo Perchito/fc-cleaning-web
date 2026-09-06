@@ -10,8 +10,9 @@ import { config as appConfig } from "./_lib/config.js";
 
 const MODEL = "claude-sonnet-5";
 const TARGET_COUNT = 5;
-const MAX_ATTEMPTS = 4;
+const MAX_ATTEMPTS = 8;
 const DEADLINE_MS = 260_000; // stay under the 300s function limit
+const PER_ATTEMPT_TIMEOUT_MS = 70_000; // cap one slow attempt so it can't sink the whole run
 
 const TARGET_BRIEF = `You are researching new commercial-cleaning prospects for FC Cleaning
 Company Ltd, an owner-managed cleaning business covering Greater Manchester
@@ -45,8 +46,20 @@ export default async function handler(req, res) {
       Date.now() - startedAt < DEADLINE_MS
     ) {
       attempts++;
-      const remaining = TARGET_COUNT - added.length;
-      const leads = await researchLeads(existingNames, remaining);
+      // Ask for a small batch per attempt, not the full remaining count —
+      // asking for more in one call is what made a single attempt run long
+      // enough to blow the whole function's time budget.
+      const remaining = Math.min(2, TARGET_COUNT - added.length);
+      const timeLeft = DEADLINE_MS - (Date.now() - startedAt);
+      const attemptTimeout = Math.min(PER_ATTEMPT_TIMEOUT_MS, timeLeft);
+
+      let leads = [];
+      try {
+        leads = await researchLeads(existingNames, remaining, attemptTimeout);
+      } catch (err) {
+        if (err?.name === "AbortError") break; // this attempt ran long — stop and save what we have
+        throw err;
+      }
 
       let addedThisAttempt = 0;
       for (const lead of leads) {
@@ -76,7 +89,7 @@ export default async function handler(req, res) {
   }
 }
 
-async function researchLeads(existingNames, count) {
+async function researchLeads(existingNames, count, timeoutMs) {
   const prompt = [
     TARGET_BRIEF,
     "",
@@ -121,24 +134,32 @@ async function researchLeads(existingNames, count) {
     "rather than crawling the whole site.",
   ].join("\n");
 
-  const r = await fetch("https://api.anthropic.com/v1/messages", {
-    method: "POST",
-    headers: {
-      "content-type": "application/json",
-      "x-api-key": process.env.ANTHROPIC_API_KEY,
-      "anthropic-version": "2023-06-01",
-    },
-    body: JSON.stringify({
-      model: MODEL,
-      max_tokens: 8000,
-      output_config: { effort: "low" },
-      tools: [
-        { type: "web_search_20260209", name: "web_search", max_uses: 8 },
-        { type: "web_fetch_20260209", name: "web_fetch", max_uses: 8 },
-      ],
-      messages: [{ role: "user", content: prompt }],
-    }),
-  });
+  const controller = new AbortController();
+  const timer = setTimeout(() => controller.abort(), timeoutMs);
+  let r;
+  try {
+    r = await fetch("https://api.anthropic.com/v1/messages", {
+      method: "POST",
+      headers: {
+        "content-type": "application/json",
+        "x-api-key": process.env.ANTHROPIC_API_KEY,
+        "anthropic-version": "2023-06-01",
+      },
+      body: JSON.stringify({
+        model: MODEL,
+        max_tokens: 4000,
+        output_config: { effort: "low" },
+        tools: [
+          { type: "web_search_20260209", name: "web_search", max_uses: 4 },
+          { type: "web_fetch_20260209", name: "web_fetch", max_uses: 4 },
+        ],
+        messages: [{ role: "user", content: prompt }],
+      }),
+      signal: controller.signal,
+    });
+  } finally {
+    clearTimeout(timer);
+  }
 
   if (!r.ok) throw new Error(`Anthropic API ${r.status}: ${await r.text()}`);
   const data = await r.json();
