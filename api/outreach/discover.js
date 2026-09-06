@@ -12,7 +12,7 @@ const MODEL = "claude-sonnet-5";
 const TARGET_COUNT = 5;
 const MAX_ATTEMPTS = 8;
 const DEADLINE_MS = 260_000; // stay under the 300s function limit
-const PER_ATTEMPT_TIMEOUT_MS = 70_000; // cap one slow attempt so it can't sink the whole run
+const PER_ATTEMPT_TIMEOUT_MS = 100_000; // cap one slow attempt so it can't sink the whole run
 
 const TARGET_BRIEF = `You are researching new commercial-cleaning prospects for FC Cleaning
 Company Ltd, an owner-managed cleaning business covering Greater Manchester
@@ -57,7 +57,9 @@ export default async function handler(req, res) {
       try {
         leads = await researchLeads(existingNames, remaining, attemptTimeout);
       } catch (err) {
-        if (err?.name === "AbortError") break; // this attempt ran long — stop and save what we have
+        // This attempt just happened to run long — that's not the same as
+        // "no more leads exist," so retry rather than give up on the run.
+        if (err?.name === "AbortError") continue;
         throw err;
       }
 
