@@ -9,13 +9,19 @@ import { load, save, upsertProspect } from "./_lib/store.js";
 import { config as appConfig } from "./_lib/config.js";
 
 const MODEL = "claude-sonnet-5";
+const TARGET_COUNT = 5;
+const MAX_ATTEMPTS = 4;
+const DEADLINE_MS = 260_000; // stay under the 300s function limit
 
 const TARGET_BRIEF = `You are researching new commercial-cleaning prospects for FC Cleaning
-Company Ltd, an owner-managed cleaning business covering Manchester city
-centre and the North West of England (Northern Quarter, Deansgate,
-Spinningfields, MediaCityUK, Ancoats, Chorlton, Didsbury, Salford),
-specializing in restaurants, pubs, bars, cafes and small hotels (kitchen
-deep cleans, extraction cleaning, front-of-house, washrooms).`;
+Company Ltd, an owner-managed cleaning business covering Greater Manchester
+and the wider North West of England — Manchester city centre (Northern
+Quarter, Deansgate, Spinningfields, MediaCityUK, Ancoats), Chorlton,
+Didsbury, Salford, Bolton, Wigan, and the towns around Bolton/Wigan (Leigh,
+Atherton, Westhoughton, Horwich, Standish, Ince-in-Makerfield,
+Ashton-in-Makerfield, Farnworth). Specializing in restaurants, pubs, bars,
+cafes and small hotels (kitchen deep cleans, extraction cleaning,
+front-of-house, washrooms).`;
 
 export default async function handler(req, res) {
   const auth = req.headers.authorization || "";
@@ -26,38 +32,62 @@ export default async function handler(req, res) {
     return res.status(500).json({ error: "ANTHROPIC_API_KEY not configured" });
   }
 
+  const startedAt = Date.now();
   try {
     const db = await load();
     const existingNames = db.prospects.map((p) => p.business);
-
-    const leads = await researchLeads(existingNames);
-
     const added = [];
-    for (const lead of leads.slice(0, 5)) {
-      if (!lead?.business || !lead?.email) continue;
-      const dupe = existingNames.some(
-        (n) => n.toLowerCase() === String(lead.business).toLowerCase()
-      );
-      if (dupe) continue;
-      const p = upsertProspect(db, { ...lead, source: "ai-research" });
-      added.push({ id: p.id, business: p.business, location: p.location || null });
-      existingNames.push(lead.business);
+    let attempts = 0;
+
+    while (
+      added.length < TARGET_COUNT &&
+      attempts < MAX_ATTEMPTS &&
+      Date.now() - startedAt < DEADLINE_MS
+    ) {
+      attempts++;
+      const remaining = TARGET_COUNT - added.length;
+      const leads = await researchLeads(existingNames, remaining);
+
+      let addedThisAttempt = 0;
+      for (const lead of leads) {
+        if (added.length >= TARGET_COUNT) break;
+        if (!lead?.business || !lead?.email) continue;
+        const dupe = existingNames.some(
+          (n) => n.toLowerCase() === String(lead.business).toLowerCase()
+        );
+        if (dupe) continue;
+        const p = upsertProspect(db, { ...lead, source: "ai-research" });
+        added.push({ id: p.id, business: p.business, location: p.location || null });
+        existingNames.push(lead.business);
+        addedThisAttempt++;
+      }
+
+      // Nothing new this round — further attempts are unlikely to help
+      // (area's verified-email supply is exhausted for today); stop rather
+      // than burn API calls for no gain.
+      if (addedThisAttempt === 0) break;
     }
+
     if (added.length) await save(db);
 
-    return res.json({ ok: true, found: leads.length, added });
+    return res.json({ ok: true, added, attempts, target: TARGET_COUNT });
   } catch (err) {
     return res.status(502).json({ error: String(err?.message || err) });
   }
 }
 
-async function researchLeads(existingNames) {
+async function researchLeads(existingNames, count) {
   const prompt = [
     TARGET_BRIEF,
     "",
-    "Find up to 5 independently or small-group owned hospitality venues in",
-    "those areas that are NOT already in this list of existing prospects:",
+    `Find up to ${count} independently or small-group owned hospitality`,
+    "venues across those areas that are NOT already in this list of",
+    "existing prospects:",
     JSON.stringify(existingNames),
+    "",
+    "Spread your search across different areas and venue types rather than",
+    "focusing on just one town — the goal is genuinely new candidates, not",
+    "exhaustively covering a single place.",
     "",
     "For each candidate, use web search and, where useful, fetch their",
     "website to find a genuine PUBLISHED contact email (a mailto: link or",
@@ -67,8 +97,8 @@ async function researchLeads(existingNames) {
     "published).",
     "",
     "Respond with ONLY a JSON array (no prose, no markdown fences) of up",
-    "to 5 objects, each with these keys: business, email, contactName (or",
-    "null), address (or null), location (the area/neighbourhood), phone",
+    `to ${count} objects, each with these keys: business, email, contactName`,
+    "(or null), address (or null), location (the area/neighbourhood), phone",
     "(or null), website (or null), hook, notes.",
     "",
     "IMPORTANT — `hook` grammar: it is inserted verbatim into the sentence",
@@ -82,8 +112,8 @@ async function researchLeads(existingNames) {
     "found (cuisine, service hours, size, event space, etc). `notes` is",
     "separate — one plain sentence citing what you found and where.",
     "",
-    "If you can't verify 5 with real emails, return fewer — never fabricate",
-    "a business or an email.",
+    `If you can't verify ${count} with real emails, return fewer — never`,
+    "fabricate a business or an email.",
     "",
     "Work efficiently — this runs under a time limit. Do one focused search",
     "per candidate area rather than many broad ones, and fetch only the",
