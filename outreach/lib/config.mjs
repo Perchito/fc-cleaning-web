@@ -85,7 +85,7 @@ export const config = {
     pass: need(`ICLOUD_SMTP_PASS (in ${mcpEnvPath})`, icloud.ICLOUD_SMTP_PASS),
   },
   from: {
-    address: icloud.ICLOUD_FROM_ADDRESS || "hello@fccleaningcompany.com",
+    address: icloud.ICLOUD_FROM_ADDRESS || "fernando.c@fccleaningcompany.com",
     name: icloud.ICLOUD_FROM_NAME || "FC Cleaning Company",
   },
   replyTo: local.REPLY_TO || "fernando.c@fccleaningcompany.com",

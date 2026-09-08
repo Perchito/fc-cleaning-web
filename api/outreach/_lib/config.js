@@ -33,7 +33,7 @@ export const config = {
     get pass() { return req("ICLOUD_SMTP_PASS"); },
   },
   from: {
-    address: e.ICLOUD_FROM_ADDRESS || "hello@fccleaningcompany.com",
+    address: e.ICLOUD_FROM_ADDRESS || "fernando.c@fccleaningcompany.com",
     name: e.ICLOUD_FROM_NAME || "FC Cleaning Company",
   },
   replyTo: e.REPLY_TO || "fernando.c@fccleaningcompany.com",
