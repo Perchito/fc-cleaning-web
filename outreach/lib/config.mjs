@@ -93,7 +93,8 @@ export const config = {
   // Footer identity for CAN-SPAM / PECR compliance.
   postalAddress:
     local.POSTAL_ADDRESS || "57 St Davids Crescent, Aspull, Wigan WN2 1SZ",
-  phone: local.PHONE || "07473 379928",
+  phone: local.PHONE || "0161 399 0482",
   website: local.WEBSITE || "fccleaningcompany.com",
   senderFirstName: local.SENDER_FIRST_NAME || "Fernando",
+  senderTitle: local.SENDER_TITLE || "Operations Director",
 };

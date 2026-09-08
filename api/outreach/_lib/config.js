@@ -45,9 +45,10 @@ export const config = {
 
   // --- compliance footer / identity ---
   postalAddress: e.POSTAL_ADDRESS || "57 St Davids Crescent, Aspull, Wigan WN2 1SZ",
-  phone: e.PHONE || "07473 379928",
+  phone: e.PHONE || "0161 399 0482",
   website: e.WEBSITE || "fccleaningcompany.com",
   senderFirstName: e.SENDER_FIRST_NAME || "Fernando",
+  senderTitle: e.SENDER_TITLE || "Operations Director",
 
   blobKey: "outreach/prospects.json",
 };
