@@ -6,10 +6,8 @@ import {
   getMeta,
   prospectTimeline,
   getSends,
-  setSendBody,
 } from "../_lib/prospects.js";
 import { listEnrollmentsForProspect } from "../_lib/campaigns.js";
-import { fetchSentBodies } from "../_lib/imap.js";
 import { sql } from "../_lib/db.js";
 import { render, withFooter } from "../_lib/render.js";
 
@@ -23,30 +21,9 @@ export default async function handler(req, res) {
       getSends(p.id),
     ]);
 
-    // Sends made before we stored the body (migrated from the old blob) have an
-    // empty body — pull the real text from the Sent mailbox once, then cache it.
-    // Strictly best-effort: never let a mailbox problem break the detail view.
-    const missing = sends.filter((s) => !s.body && s.messageId).slice(0, 8);
-    if (missing.length && req.query.bodies !== "0") {
-      try {
-        const bodies = await Promise.race([
-          fetchSentBodies(missing.map((s) => s.messageId)),
-          new Promise((resolve) => setTimeout(() => resolve(new Map()), 20_000)),
-        ]);
-        for (const s of missing) {
-          const text = bodies.get(String(s.messageId).replace(/^<|>$/g, "").toLowerCase());
-          if (text) {
-            s.body = text;
-            setSendBody(s.id, text).catch(() => {});
-          }
-        }
-      } catch (e) {
-        console.warn("[prospects] sent-body backfill failed:", String(e?.message || e));
-      }
-    }
-
-    // Still missing? iCloud doesn't file SMTP-sent mail into Sent, so old sends
-    // have no copy anywhere. Reconstruct from the campaign step template.
+    // New sends store the body verbatim. Sends from before the rebuild have an
+    // empty body and no copy anywhere (iCloud doesn't file SMTP-sent mail into
+    // the Sent folder) — reconstruct them from the campaign step template.
     const stillMissing = sends.filter((s) => !s.body);
     if (stillMissing.length) {
       const rows = await sql`
