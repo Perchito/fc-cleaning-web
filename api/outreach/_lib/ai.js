@@ -265,14 +265,24 @@ export function discoverSpec({ area, count = 3, existingNames = [] }) {
     maxTokens: 3000,
     system:
       "You are a careful lead researcher for a commercial cleaning company. Never invent a business or an email — only include a venue where you found a genuinely published contact email (a mailto: link or an address shown on a Contact/About page).",
-    prompt: `Find up to ${count} independently or small-group owned hospitality venues (restaurants,
-pubs, bars, cafés, small hotels) around ${area || "Bolton and the North West"} that are NOT already
-in this list:
+    prompt: `Area: "${area || "Bolton and the North West"}"
+If that is not a recognisable UK place name, return {"leads":[]} and stop.
+
+Find up to ${count} independently or small-group owned hospitality venues (restaurants, pubs,
+bars, cafés, small hotels) in or very near that area that are NOT already in this list:
 ${JSON.stringify(existingNames)}
 
-For each, use web search and fetch the Contact/About page to confirm a real published email.
-Return ONLY a JSON object: {"leads":[{"business":"","email":"","contactName":null,"address":"","location":"","phone":null,"website":"","hook":"lowercase noun phrase for 'I'm reaching out about ___.'","notes":"one sentence citing what you found and where"}]}
-If you can't verify ${count}, return fewer. Never fabricate.`,
+For each, use web search and fetch the Contact/About page to confirm a real published email
+(a mailto: link or an address written on the page). Skip any venue where you can't find one.
+
+The "hook" goes into the sentence "I'm reaching out about ___." so it must be a short lowercase
+noun phrase grounded in something specific about the venue - e.g. "kitchen extraction and
+canopy degreasing for your open-grill kitchen", "a before-open clean of the bar and function
+room", "washroom and dining-floor cleaning around your seven-day service". Not generic.
+
+Return ONLY a JSON object:
+{"leads":[{"business":"","email":"","contactName":null,"address":"","location":"","phone":null,"website":"","hook":"","notes":"one sentence citing what you found and where"}]}
+If you can't verify ${count}, return fewer. Never fabricate a business or an email.`,
   };
 }
 
