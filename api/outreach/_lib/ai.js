@@ -9,9 +9,9 @@ import { sql } from "./db.js";
 const MODEL = "claude-sonnet-5";
 const API = "https://api.anthropic.com/v1/messages";
 
-// Rough claude-sonnet-5 rates ($/token) + web-search tool price ($/request).
-const IN_RATE = 3 / 1_000_000;
-const OUT_RATE = 15 / 1_000_000;
+// claude-sonnet-5 rates ($/token) + web-search tool price ($/request).
+const IN_RATE = 2 / 1_000_000;
+const OUT_RATE = 10 / 1_000_000;
 const SEARCH_RATE = 10 / 1000;
 
 /**
