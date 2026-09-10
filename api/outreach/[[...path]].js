@@ -10,6 +10,7 @@ import discover from "./_routes/discover.js";
 import draft from "./_routes/draft.js";
 import enrich from "./_routes/enrich.js";
 import enroll from "./_routes/enroll.js";
+import findLeads from "./_routes/find-leads.js";
 import importCsv from "./_routes/import.js";
 import jobs from "./_routes/jobs.js";
 import migrate from "./_routes/migrate.js";
@@ -33,6 +34,7 @@ const ROUTES = {
   draft,
   enrich,
   enroll,
+  "find-leads": findLeads,
   import: importCsv,
   jobs,
   migrate,
