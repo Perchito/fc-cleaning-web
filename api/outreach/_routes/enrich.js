@@ -2,13 +2,15 @@
 // The daily batch enrichment runs inside cron.js.
 
 import { getProspect, updateResearch } from "../_lib/prospects.js";
-import { enrichProspect } from "../_lib/ai.js";
+import { enrichProspect, aiEnabled } from "../_lib/ai.js";
 
 export default async function handler(req, res) {
   if (req.method !== "POST") {
     res.setHeader("Allow", "POST");
     return res.status(405).json({ error: "method not allowed" });
   }
+  if (!aiEnabled())
+    return res.status(409).json({ error: "AI is off — set OUTREACH_AI=on in Vercel to enable research" });
   const { prospectId } = req.body || {};
   if (!prospectId) return res.status(400).json({ error: "prospectId required" });
   const p = await getProspect(prospectId);

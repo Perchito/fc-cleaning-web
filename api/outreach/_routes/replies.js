@@ -5,7 +5,7 @@ import { sql } from "../_lib/db.js";
 import { getProspect, setStatus, lastSend } from "../_lib/prospects.js";
 import { sendMail } from "../_lib/mailer.js";
 import { suppress } from "../_lib/suppression.js";
-import { classifyReply } from "../_lib/ai.js";
+import { classifyReply, aiEnabled } from "../_lib/ai.js";
 
 function row(r) {
   return {
@@ -70,6 +70,8 @@ export default async function handler(req, res) {
   }
 
   if (action === "regenerate") {
+    if (!aiEnabled())
+      return res.status(409).json({ error: "AI is off — set OUTREACH_AI=on in Vercel" });
     try {
       const a = await classifyReply({
         prospect: p,
