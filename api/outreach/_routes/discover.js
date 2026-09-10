@@ -7,12 +7,13 @@
 
 import { listProspects, upsertProspect } from "../_lib/prospects.js";
 import { config as appConfig } from "../_lib/config.js";
+import { aiBudgetOk, recordAiSpend, aiCostOf } from "../_lib/ai.js";
 
 const MODEL = "claude-sonnet-5";
-const TARGET_COUNT = 5;
-const MAX_ATTEMPTS = 8;
-const DEADLINE_MS = 260_000; // stay under the 300s function limit
-const PER_ATTEMPT_TIMEOUT_MS = 100_000; // cap one slow attempt so it can't sink the whole run
+const TARGET_COUNT = 3;
+const MAX_ATTEMPTS = 3;
+const DEADLINE_MS = 240_000; // stay under the 300s function limit
+const PER_ATTEMPT_TIMEOUT_MS = 90_000; // cap one slow attempt so it can't sink the whole run
 
 const TARGET_BRIEF = `You are researching new commercial-cleaning prospects for FC Cleaning
 Company Ltd, an owner-managed cleaning business covering Greater Manchester
@@ -36,6 +37,9 @@ export default async function handler(req, res) {
   if (process.env.OUTREACH_AI !== "on") {
     return res.json({ ok: true, skipped: "OUTREACH_AI is not 'on'", added: [] });
   }
+  if (!(await aiBudgetOk())) {
+    return res.json({ ok: true, skipped: "daily AI budget reached", added: [] });
+  }
 
   const startedAt = Date.now();
   try {
@@ -47,7 +51,8 @@ export default async function handler(req, res) {
     while (
       added.length < TARGET_COUNT &&
       attempts < MAX_ATTEMPTS &&
-      Date.now() - startedAt < DEADLINE_MS
+      Date.now() - startedAt < DEADLINE_MS &&
+      (await aiBudgetOk())
     ) {
       attempts++;
       // Ask for a small batch per attempt, not the full remaining count —
@@ -156,11 +161,11 @@ async function researchLeads(existingNames, count, timeoutMs) {
       },
       body: JSON.stringify({
         model: MODEL,
-        max_tokens: 4000,
+        max_tokens: 3000,
         output_config: { effort: "low" },
         tools: [
-          { type: "web_search_20260209", name: "web_search", max_uses: 4 },
-          { type: "web_fetch_20260209", name: "web_fetch", max_uses: 4 },
+          { type: "web_search_20260209", name: "web_search", max_uses: 2 },
+          { type: "web_fetch_20260209", name: "web_fetch", max_uses: 2, max_content_tokens: 3000 },
         ],
         messages: [{ role: "user", content: prompt }],
       }),
@@ -172,6 +177,11 @@ async function researchLeads(existingNames, count, timeoutMs) {
 
   if (!r.ok) throw new Error(`Anthropic API ${r.status}: ${await r.text()}`);
   const data = await r.json();
+  try {
+    await recordAiSpend(aiCostOf(data));
+  } catch {
+    /* metering must never break the run */
+  }
   const text = (data.content || [])
     .filter((b) => b.type === "text")
     .map((b) => b.text)

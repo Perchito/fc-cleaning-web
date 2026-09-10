@@ -4,9 +4,15 @@
 
 import { config } from "./config.js";
 import { hookFor } from "./render.js";
+import { sql } from "./db.js";
 
 const MODEL = "claude-sonnet-5";
 const API = "https://api.anthropic.com/v1/messages";
+
+// Rough claude-sonnet-5 rates ($/token) + web-search tool price ($/request).
+const IN_RATE = 3 / 1_000_000;
+const OUT_RATE = 15 / 1_000_000;
+const SEARCH_RATE = 10 / 1000;
 
 /**
  * Master switch. All AI calls are no-ops unless OUTREACH_AI="on" AND a key is
@@ -14,6 +20,58 @@ const API = "https://api.anthropic.com/v1/messages";
  */
 export function aiEnabled() {
   return process.env.OUTREACH_AI === "on" && !!process.env.ANTHROPIC_API_KEY;
+}
+
+// ── hard daily spend cap (belt-and-braces on top of the Anthropic Console limit)
+const DAILY_BUDGET_USD = Number(process.env.AI_DAILY_BUDGET_USD || 2);
+
+function today() {
+  return new Date().toLocaleDateString("en-CA", { timeZone: "Europe/London" });
+}
+
+export async function aiSpendToday() {
+  const rows = await sql`select v from meta where k = 'aiSpend'`;
+  const rec = rows[0]?.v;
+  return rec && rec.day === today() ? { day: rec.day, usd: rec.usd || 0, calls: rec.calls || 0 } : { day: today(), usd: 0, calls: 0 };
+}
+
+export async function recordAiSpend(usd) {
+  const s = await aiSpendToday();
+  const next = { day: s.day, usd: Math.round((s.usd + usd) * 1e6) / 1e6, calls: s.calls + 1 };
+  await sql`
+    insert into meta (k, v) values ('aiSpend', ${JSON.stringify(next)}::jsonb)
+    on conflict (k) do update set v = excluded.v`;
+  return next;
+}
+
+/** Estimated $ cost of one Anthropic API response (from its usage block). */
+export function aiCostOf(data) {
+  return costOf(data);
+}
+
+/** Under the daily budget? Checked before every AI call. */
+export async function aiBudgetOk() {
+  return (await aiSpendToday()).usd < DAILY_BUDGET_USD;
+}
+
+async function guard() {
+  if (!aiEnabled()) return false;
+  if (!(await aiBudgetOk())) {
+    console.warn(`[ai] daily budget $${DAILY_BUDGET_USD} reached — skipping`);
+    return false;
+  }
+  return true;
+}
+
+function costOf(data) {
+  const u = data?.usage || {};
+  const searches = u.server_tool_use?.web_search_requests || 0;
+  return (
+    (u.input_tokens || 0) * IN_RATE +
+    (u.cache_creation_input_tokens || 0) * IN_RATE +
+    (u.output_tokens || 0) * OUT_RATE +
+    searches * SEARCH_RATE
+  );
 }
 
 function keyOrThrow() {
@@ -48,6 +106,11 @@ async function callClaude({ system, prompt, tools, effort = "low", maxTokens = 1
   }
   if (!r.ok) throw new Error(`Anthropic API ${r.status}: ${await r.text()}`);
   const data = await r.json();
+  try {
+    await recordAiSpend(costOf(data));
+  } catch {
+    /* metering must never break a call */
+  }
   const text = (data.content || [])
     .filter((b) => b.type === "text")
     .map((b) => b.text)
@@ -80,7 +143,7 @@ quote within 24 hours. Sender: ${config.senderFirstName} (${config.senderTitle})
  * the standard footer.
  */
 export async function draftEmail(prospect, step, { round = 1 } = {}) {
-  if (!aiEnabled()) return null;
+  if (!(await guard())) return null;
   const research = prospect.research
     ? `What we know about them (research):\n${JSON.stringify(prospect.research, null, 1)}`
     : `We have little research on them. Known: ${[
@@ -151,7 +214,7 @@ export const INTENTS = [
  * Returns { intent, confidence (0-1), summary, suggestedReply }.
  */
 export async function classifyReply({ prospect, replyText, lastSentSubject }) {
-  if (!aiEnabled()) return null;
+  if (!(await guard())) return null;
   const system = `You triage replies to cold outreach for a small cleaning company and
 draft a short, friendly response the owner can send with one tweak. British English,
 plain text, no sign-off.`;
@@ -195,10 +258,10 @@ Return ONLY JSON: {"intent":"...","confidence":0.0-1.0,"summary":"one line","sug
  * object to store on the prospect, plus a fresh `hook`.
  */
 export async function enrichProspect(prospect) {
-  if (!aiEnabled()) return null;
+  if (!(await guard())) return null;
   const tools = [
-    { type: "web_search_20260209", name: "web_search", max_uses: 3 },
-    { type: "web_fetch_20260209", name: "web_fetch", max_uses: 3 },
+    { type: "web_search_20260209", name: "web_search", max_uses: 2 },
+    { type: "web_fetch_20260209", name: "web_fetch", max_uses: 2, max_content_tokens: 3000 },
   ];
   const prompt = `Research this hospitality business so a cleaning company can write a
 personalised outreach email. ${prospect.business}${

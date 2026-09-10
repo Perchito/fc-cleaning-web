@@ -14,6 +14,24 @@ export default function Analytics() {
     <>
       <PageHead title="Analytics" />
       <div className="space-y-6 p-5">
+        {data.ai && (
+          <div
+            className={`rounded-lg border px-4 py-2.5 text-sm ${
+              data.ai.enabled
+                ? "border-teal-200 bg-teal-50 text-teal-800"
+                : "border-navy-200 bg-navy-50 text-navy-600"
+            }`}
+          >
+            AI layer is <b>{data.ai.enabled ? "ON" : "OFF"}</b>
+            {data.ai.enabled && (
+              <>
+                {" "}· today: <b>${(data.ai.usd || 0).toFixed(2)}</b> across {data.ai.calls || 0} call
+                {data.ai.calls === 1 ? "" : "s"} (auto-stops at the daily cap)
+              </>
+            )}
+            {!data.ai.enabled && <> — set <code>OUTREACH_AI=on</code> in Vercel to enable</>}
+          </div>
+        )}
         <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-6">
           <StatTile label="Prospects" value={o.prospects} sub={`${o.draft} not contacted`} />
           <StatTile label="Contacted" value={o.contacted} />

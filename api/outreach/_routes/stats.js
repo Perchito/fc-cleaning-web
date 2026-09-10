@@ -2,12 +2,15 @@
 // per-variant breakdowns, and a 14-day activity series.
 
 import { sql } from "../_lib/db.js";
+import { aiEnabled, aiSpendToday } from "../_lib/ai.js";
 
 export default async function handler(req, res) {
   if (req.method !== "GET") {
     res.setHeader("Allow", "GET");
     return res.status(405).json({ error: "method not allowed" });
   }
+
+  const ai = { enabled: aiEnabled(), ...(await aiSpendToday()) };
 
   const [overall] = await sql`
     select
@@ -81,6 +84,7 @@ export default async function handler(req, res) {
 
   const num = (x) => Number(x || 0);
   return res.json({
+    ai,
     overall: {
       prospects: num(overall.prospects),
       draft: num(overall.draft),
