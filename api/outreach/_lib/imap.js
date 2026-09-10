@@ -289,7 +289,11 @@ export async function auditReplies({ sinceDays = 75 } = {}) {
   const genuine = new Map(); // prospectId -> { messageId, at, snippet, from }
   client.on("error", () => {}); // don't let a socket error crash the function
   await client.connect();
-  const lock = await client.getMailboxLock("INBOX");
+
+  // Pass 1: collect matching messages (can't download while the fetch iterator
+  // is open on the same connection).
+  const cands = [];
+  let lock = await client.getMailboxLock("INBOX");
   try {
     for await (const msg of client.fetch(
       { since },
@@ -302,28 +306,44 @@ export async function auditReplies({ sinceDays = 75 } = {}) {
         ...idsFromHeader((headerText.match(/^in-reply-to:(.*)$/im) || [])[1]),
         ...idsFromHeader((headerText.match(/^references:(.*)$/im) || [])[1]),
       ]);
-
       let pid = null;
       for (const id of refIds) if (byMessageId.has(id)) pid = byMessageId.get(id);
       if (!pid && byEmail.has(fromAddr)) pid = byEmail.get(fromAddr);
       if (!pid) continue;
-
-      const parsed = await downloadParsed(client, msg.uid);
-      if (looksAutomated({ ...parsed, subject: env.subject })) continue;
-
-      const at = env.date ? new Date(env.date) : new Date();
-      const prev = genuine.get(pid);
-      if (!prev || at > new Date(prev.at)) {
-        genuine.set(pid, {
-          messageId: normId(env.messageId),
-          at: at.toISOString(),
-          snippet: cleanSnippet(parsed?.text || env.subject || ""),
-          from: fromAddr,
-        });
-      }
+      cands.push({
+        uid: msg.uid,
+        pid,
+        from: fromAddr,
+        subject: env.subject || "",
+        messageId: normId(env.messageId),
+        date: env.date ? new Date(env.date) : new Date(),
+      });
     }
   } finally {
     lock.release();
+  }
+
+  // Pass 2: download each candidate, drop automated ones, keep the newest per prospect.
+  try {
+    lock = await client.getMailboxLock("INBOX");
+    try {
+      for (const c of cands) {
+        const parsed = await downloadParsed(client, c.uid);
+        if (looksAutomated({ ...parsed, subject: c.subject })) continue;
+        const prev = genuine.get(c.pid);
+        if (!prev || c.date > new Date(prev.at)) {
+          genuine.set(c.pid, {
+            messageId: c.messageId,
+            at: c.date.toISOString(),
+            snippet: cleanSnippet(parsed?.text || c.subject || ""),
+            from: c.from,
+          });
+        }
+      }
+    } finally {
+      lock.release();
+    }
+  } finally {
     await client.logout().catch(() => {});
   }
 
