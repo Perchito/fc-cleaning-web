@@ -9,10 +9,6 @@
     { "path": "/api/outreach/discover", "schedule": "0 8 * * *" }
   ],
   "functions": {
-    "api/outreach/cron.js": { "maxDuration": 300 },
-    "api/outreach/discover.js": { "maxDuration": 300 },
-    "api/outreach/enrich.js": { "maxDuration": 120 },
-    "api/outreach/migrate.js": { "maxDuration": 120 },
-    "api/outreach/*.js": { "maxDuration": 60 }
+    "api/outreach/[[...path]].js": { "maxDuration": 300 }
   }
 }

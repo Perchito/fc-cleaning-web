@@ -9,9 +9,9 @@
 // only rows are earlier migration attempts).
 
 import { get } from "@vercel/blob";
-import { sql } from "./_lib/db.js";
-import { createCampaign } from "./_lib/campaigns.js";
-import { LEGACY_CAMPAIGN } from "./_lib/seed-campaign.js";
+import { sql } from "../_lib/db.js";
+import { createCampaign } from "../_lib/campaigns.js";
+import { LEGACY_CAMPAIGN } from "../_lib/seed-campaign.js";
 
 const BOUNCE_OR_UNSUB = ["bounced", "unsubscribed"];
 

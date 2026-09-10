@@ -1,4 +1,4 @@
-import { enrollProspects, unenroll } from "./_lib/campaigns.js";
+import { enrollProspects, unenroll } from "../_lib/campaigns.js";
 
 export default async function handler(req, res) {
   if (req.method === "POST") {

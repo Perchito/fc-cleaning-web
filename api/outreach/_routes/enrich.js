@@ -1,8 +1,8 @@
 // Research one prospect for AI drafting. Behind the /ops Basic-auth middleware.
 // The daily batch enrichment runs inside cron.js.
 
-import { getProspect, updateResearch } from "./_lib/prospects.js";
-import { enrichProspect } from "./_lib/ai.js";
+import { getProspect, updateResearch } from "../_lib/prospects.js";
+import { enrichProspect } from "../_lib/ai.js";
 
 export default async function handler(req, res) {
   if (req.method !== "POST") {

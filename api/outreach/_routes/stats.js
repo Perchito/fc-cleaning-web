@@ -1,7 +1,7 @@
 // Analytics: overall + per-campaign funnel, reply rates, per-step and
 // per-variant breakdowns, and a 14-day activity series.
 
-import { sql } from "./_lib/db.js";
+import { sql } from "../_lib/db.js";
 
 export default async function handler(req, res) {
   if (req.method !== "GET") {

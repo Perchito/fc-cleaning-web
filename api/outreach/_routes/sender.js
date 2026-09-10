@@ -2,7 +2,7 @@
 // review screen ("Send approved"), which spaces the calls out. Kept small so
 // each invocation stays well under the function time limit.
 
-import { sendApproved } from "./_lib/queue.js";
+import { sendApproved } from "../_lib/queue.js";
 
 export default async function handler(req, res) {
   if (req.method !== "POST") {

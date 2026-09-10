@@ -3,9 +3,9 @@
 // prospects that already exist or are suppressed. Optionally enrols the new
 // ones into a campaign.
 
-import { sql } from "./_lib/db.js";
-import { upsertProspect } from "./_lib/prospects.js";
-import { enrollProspects } from "./_lib/campaigns.js";
+import { sql } from "../_lib/db.js";
+import { upsertProspect } from "../_lib/prospects.js";
+import { enrollProspects } from "../_lib/campaigns.js";
 
 // tiny CSV parser: handles quoted fields, embedded commas, "" escapes, CRLF
 function parseCSV(text) {

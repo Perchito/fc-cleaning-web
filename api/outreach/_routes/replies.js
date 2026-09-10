@@ -1,11 +1,11 @@
 // The reply inbox: classified inbound replies with a suggested response, plus
 // bounces / auto-acks. Actions: mark handled, send a reply, set status.
 
-import { sql } from "./_lib/db.js";
-import { getProspect, setStatus, lastSend } from "./_lib/prospects.js";
-import { sendMail } from "./_lib/mailer.js";
-import { suppress } from "./_lib/suppression.js";
-import { classifyReply } from "./_lib/ai.js";
+import { sql } from "../_lib/db.js";
+import { getProspect, setStatus, lastSend } from "../_lib/prospects.js";
+import { sendMail } from "../_lib/mailer.js";
+import { suppress } from "../_lib/suppression.js";
+import { classifyReply } from "../_lib/ai.js";
 
 function row(r) {
   return {

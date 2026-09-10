@@ -1,4 +1,4 @@
-import { setStatus, decorate } from "./_lib/prospects.js";
+import { setStatus, decorate } from "../_lib/prospects.js";
 
 const ALLOWED = ["awaiting_reply", "replied", "bounced", "won", "lost", "unsubscribed", "draft"];
 

@@ -1,8 +1,8 @@
 // Render a template against a real prospect — powers the live preview in the
 // campaign step editor.
 
-import { getProspect, listProspects } from "./_lib/prospects.js";
-import { render, validate, MERGE_TOKENS } from "./_lib/render.js";
+import { getProspect, listProspects } from "../_lib/prospects.js";
+import { render, validate, MERGE_TOKENS } from "../_lib/render.js";
 
 export default async function handler(req, res) {
   if (req.method === "GET") {

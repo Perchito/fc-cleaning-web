@@ -1,5 +1,5 @@
-import { getProspect } from "./_lib/prospects.js";
-import { draftInitial, draftFollowUp } from "./_lib/templates.js";
+import { getProspect } from "../_lib/prospects.js";
+import { draftInitial, draftFollowUp } from "../_lib/templates.js";
 
 export default async function handler(req, res) {
   const id = req.query.id;

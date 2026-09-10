@@ -1,7 +1,7 @@
 // Reusable template library (subject + body with merge tokens). Separate from
 // _lib/templates.js, which is the legacy one-off draft generator.
 
-import { sql } from "./_lib/db.js";
+import { sql } from "../_lib/db.js";
 
 const row = (r) => ({
   id: r.id,

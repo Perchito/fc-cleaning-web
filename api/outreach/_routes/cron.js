@@ -6,12 +6,12 @@
 // Nothing is sent to prospects here — Luis approves the queued batch in /ops.
 // Self-authenticated: Vercel sends "Authorization: Bearer $CRON_SECRET".
 
-import { listProspects, updateResearch } from "./_lib/prospects.js";
-import { pollReplies } from "./_lib/imap.js";
-import { buildQueue } from "./_lib/queue.js";
-import { enrichProspect } from "./_lib/ai.js";
-import { maybeSendDigest } from "./_lib/digest.js";
-import { config as appConfig } from "./_lib/config.js";
+import { listProspects, updateResearch } from "../_lib/prospects.js";
+import { pollReplies } from "../_lib/imap.js";
+import { buildQueue } from "../_lib/queue.js";
+import { enrichProspect } from "../_lib/ai.js";
+import { maybeSendDigest } from "../_lib/digest.js";
+import { config as appConfig } from "../_lib/config.js";
 
 const ENRICH_PER_RUN = 3;
 

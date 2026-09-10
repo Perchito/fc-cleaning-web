@@ -3,7 +3,7 @@ import {
   getCampaign,
   createCampaign,
   updateCampaign,
-} from "./_lib/campaigns.js";
+} from "../_lib/campaigns.js";
 
 export default async function handler(req, res) {
   const id = req.query.id;

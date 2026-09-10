@@ -1,4 +1,4 @@
-import { getQueue, queueAction, buildQueue } from "./_lib/queue.js";
+import { getQueue, queueAction, buildQueue } from "../_lib/queue.js";
 
 export default async function handler(req, res) {
   if (req.method === "GET") {

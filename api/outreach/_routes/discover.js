@@ -5,8 +5,8 @@
 // automatically). Self-authenticated like cron.js — Vercel sends
 // "Authorization: Bearer $CRON_SECRET" for every cron-triggered request.
 
-import { listProspects, upsertProspect } from "./_lib/prospects.js";
-import { config as appConfig } from "./_lib/config.js";
+import { listProspects, upsertProspect } from "../_lib/prospects.js";
+import { config as appConfig } from "../_lib/config.js";
 
 const MODEL = "claude-sonnet-5";
 const TARGET_COUNT = 5;

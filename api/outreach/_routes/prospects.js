@@ -5,8 +5,8 @@ import {
   decorate,
   getMeta,
   prospectTimeline,
-} from "./_lib/prospects.js";
-import { listEnrollmentsForProspect } from "./_lib/campaigns.js";
+} from "../_lib/prospects.js";
+import { listEnrollmentsForProspect } from "../_lib/campaigns.js";
 
 export default async function handler(req, res) {
   if (req.method === "GET" && req.query.id) {

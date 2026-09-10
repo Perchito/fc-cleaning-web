@@ -1,5 +1,5 @@
-import { getProspect, recordSend, decorate, lastSend, nowISO } from "./_lib/prospects.js";
-import { sendMail } from "./_lib/mailer.js";
+import { getProspect, recordSend, decorate, lastSend, nowISO } from "../_lib/prospects.js";
+import { sendMail } from "../_lib/mailer.js";
 
 export default async function handler(req, res) {
   if (req.method !== "POST") {
