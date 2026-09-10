@@ -10,6 +10,8 @@ import {
 } from "../_lib/prospects.js";
 import { listEnrollmentsForProspect } from "../_lib/campaigns.js";
 import { fetchSentBodies } from "../_lib/imap.js";
+import { sql } from "../_lib/db.js";
+import { render, withFooter } from "../_lib/render.js";
 
 export default async function handler(req, res) {
   if (req.method === "GET" && req.query.id) {
@@ -40,6 +42,26 @@ export default async function handler(req, res) {
         }
       } catch (e) {
         console.warn("[prospects] sent-body backfill failed:", String(e?.message || e));
+      }
+    }
+
+    // Still missing? iCloud doesn't file SMTP-sent mail into Sent, so old sends
+    // have no copy anywhere. Reconstruct from the campaign step template.
+    const stillMissing = sends.filter((s) => !s.body);
+    if (stillMissing.length) {
+      const rows = await sql`
+        select s.id as send_id, cs.subject_tmpl, cs.body_tmpl
+        from sends s
+        join campaign_steps cs
+          on cs.campaign_id = s.campaign_id and cs.step_index = s.step_index
+        where s.id = any(${stillMissing.map((s) => s.id)})`;
+      const tmplBy = Object.fromEntries(rows.map((r) => [r.send_id, r]));
+      for (const s of stillMissing) {
+        const t = tmplBy[s.id];
+        if (t?.body_tmpl) {
+          s.body = withFooter(render(t.body_tmpl, p), p);
+          s.reconstructed = true;
+        }
       }
     }
 
