@@ -23,19 +23,23 @@ export default async function handler(req, res) {
 
     // Sends made before we stored the body (migrated from the old blob) have an
     // empty body — pull the real text from the Sent mailbox once, then cache it.
-    const missing = sends.filter((s) => !s.body && s.messageId);
+    // Strictly best-effort: never let a mailbox problem break the detail view.
+    const missing = sends.filter((s) => !s.body && s.messageId).slice(0, 8);
     if (missing.length && req.query.bodies !== "0") {
       try {
-        const bodies = await fetchSentBodies(missing.map((s) => s.messageId));
+        const bodies = await Promise.race([
+          fetchSentBodies(missing.map((s) => s.messageId)),
+          new Promise((resolve) => setTimeout(() => resolve(new Map()), 20_000)),
+        ]);
         for (const s of missing) {
-          const text = bodies.get(s.messageId.replace(/^<|>$/g, "").toLowerCase());
+          const text = bodies.get(String(s.messageId).replace(/^<|>$/g, "").toLowerCase());
           if (text) {
             s.body = text;
-            await setSendBody(s.id, text);
+            setSendBody(s.id, text).catch(() => {});
           }
         }
-      } catch {
-        /* leave bodies empty if the mailbox is unreachable */
+      } catch (e) {
+        console.warn("[prospects] sent-body backfill failed:", String(e?.message || e));
       }
     }
 

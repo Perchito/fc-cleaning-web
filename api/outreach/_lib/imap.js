@@ -412,7 +412,7 @@ export async function fetchSentBodies(messageIds = []) {
     let sentPath = "Sent Messages";
     try {
       for (const mb of await client.list()) {
-        if (mb.specialUse === "\\Sent" || /^sent/i.test(mb.name)) {
+        if (mb.specialUse === "\\Sent" || /(^|\/)sent/i.test(mb.name || mb.path)) {
           sentPath = mb.path;
           break;
         }
@@ -421,24 +421,21 @@ export async function fetchSentBodies(messageIds = []) {
       /* fall back to the default name */
     }
 
-    const since = new Date(Date.now() - 120 * 86_400_000);
-    const uids = [];
-    let lock = await client.getMailboxLock(sentPath);
+    const lock = await client.getMailboxLock(sentPath);
     try {
-      for await (const msg of client.fetch({ since }, { uid: true, envelope: true })) {
-        if (want.has(normId(msg.envelope?.messageId))) {
-          uids.push({ uid: msg.uid, mid: normId(msg.envelope.messageId) });
+      for (const raw of want) {
+        try {
+          const uids = await client.search(
+            { header: { "message-id": `<${raw}>` } },
+            { uid: true },
+          );
+          const uid = uids?.[uids.length - 1];
+          if (!uid) continue;
+          const parsed = await downloadParsed(client, uid);
+          if (parsed?.text) out.set(raw, parsed.text.trim());
+        } catch {
+          /* one lookup failing shouldn't stop the rest */
         }
-      }
-    } finally {
-      lock.release();
-    }
-
-    lock = await client.getMailboxLock(sentPath);
-    try {
-      for (const { uid, mid } of uids) {
-        const parsed = await downloadParsed(client, uid);
-        if (parsed?.text) out.set(mid, parsed.text.trim());
       }
     } finally {
       lock.release();
