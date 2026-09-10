@@ -1,6 +1,7 @@
 {
   "rewrites": [
     { "source": "/ops", "destination": "/ops/index.html" },
+    { "source": "/ops/((?!assets/).*)", "destination": "/ops/index.html" },
     { "source": "/((?!api/).*)", "destination": "/index.html" }
   ],
   "crons": [
@@ -8,7 +9,6 @@
     { "path": "/api/outreach/discover", "schedule": "0 8 * * *" }
   ],
   "functions": {
-    "api/outreach/discover.js": { "maxDuration": 300 },
-    "api/outreach/*.js": { "maxDuration": 60 }
+    "api/outreach/[[...path]].js": { "maxDuration": 300 }
   }
 }
