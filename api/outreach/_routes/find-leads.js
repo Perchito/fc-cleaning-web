@@ -16,8 +16,12 @@ export default async function handler(req, res) {
 
   const area = (req.body?.area || "Bolton and the North West").toString().slice(0, 200);
   const count = Math.min(8, Math.max(1, Number(req.body?.count) || 3));
+  const campaignId = req.body?.campaignId || null;
   const existingNames = (await listProspects()).map((p) => p.business);
 
-  const jobId = await enqueueJob(discoverSpec({ area, count, existingNames }), {});
-  return res.json({ ok: true, pending: true, jobId, area, count });
+  const jobId = await enqueueJob(
+    discoverSpec({ area, count, existingNames }),
+    campaignId ? { campaignId } : {},
+  );
+  return res.json({ ok: true, pending: true, jobId, area, count, campaignId });
 }

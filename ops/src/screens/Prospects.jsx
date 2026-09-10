@@ -167,7 +167,12 @@ export default function Prospects() {
       </div>
 
       <AddModal open={addOpen} onClose={() => setAddOpen(false)} onDone={reload} />
-      <FindModal open={findOpen} onClose={() => setFindOpen(false)} onDone={reload} />
+      <FindModal
+        open={findOpen}
+        onClose={() => setFindOpen(false)}
+        campaigns={campaigns.data?.campaigns || []}
+        onDone={reload}
+      />
       <ImportModal
         open={importOpen}
         onClose={() => setImportOpen(false)}
@@ -230,9 +235,10 @@ function AddModal({ open, onClose, onDone }) {
   );
 }
 
-function FindModal({ open, onClose, onDone }) {
+function FindModal({ open, onClose, campaigns, onDone }) {
   const [area, setArea] = useState("Bolton");
   const [count, setCount] = useState(3);
+  const [campaignId, setCampaignId] = useState("");
   const [busy, setBusy] = useState(false);
   const [msg, setMsg] = useState("");
 
@@ -240,10 +246,14 @@ function FindModal({ open, onClose, onDone }) {
     setBusy(true);
     setMsg("Sent to the home worker — it's searching the web…");
     try {
-      const r = await post("/find-leads", { area, count });
+      const r = await post("/find-leads", { area, count, campaignId: campaignId || undefined });
       const done = await pollJob(r.jobId, { timeout: 360000 });
       if (done.ok) {
-        setMsg("Done — new prospects added as drafts. Check the list.");
+        setMsg(
+          campaignId
+            ? "Done — new leads added, enrolled, and their first emails are in the Queue."
+            : "Done — new leads added as drafts. Check the list.",
+        );
         onDone();
       } else {
         setMsg("Failed: " + done.error);
@@ -260,7 +270,7 @@ function FindModal({ open, onClose, onDone }) {
       <div className="space-y-3">
         <p className="text-sm text-navy-500">
           Your home machine researches hospitality venues in an area and adds any with a genuinely
-          published email as <b>drafts</b>. Nothing is contacted. Takes a couple of minutes.
+          published email. Takes a couple of minutes. Nothing is sent.
         </p>
         <div className="grid grid-cols-3 gap-3">
           <div className="col-span-2">
@@ -272,6 +282,17 @@ function FindModal({ open, onClose, onDone }) {
             <Input type="number" min="1" max="8" value={count} onChange={(e) => setCount(Number(e.target.value))} />
           </Field>
         </div>
+        <Field label="Put them straight into a campaign?" hint="drafts their first email into the Queue for you to review — nothing sends without approval">
+          <Select value={campaignId} onChange={(e) => setCampaignId(e.target.value)}>
+            <option value="">Just add as drafts</option>
+            {campaigns.map((c) => (
+              <option key={c.id} value={c.id}>
+                {c.name}
+                {c.status !== "active" ? ` (${c.status})` : ""}
+              </option>
+            ))}
+          </Select>
+        </Field>
         <Button onClick={run} disabled={busy || !area.trim()}>
           {busy ? "Searching…" : "Search"}
         </Button>
