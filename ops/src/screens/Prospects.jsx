@@ -1,5 +1,5 @@
 import { useMemo, useState } from "react";
-import { useResource, api, post, toast, timeAgo } from "../api.js";
+import { useResource, api, post, toast, timeAgo, fmtDate } from "../api.js";
 import { PageHead } from "../App.jsx";
 import { Button, Badge, Card, Loading, ErrorBox, Empty, Modal, Drawer, Field, Input, Select, TextArea } from "../ui.jsx";
 
@@ -358,6 +358,19 @@ function ProspectDrawer({ id, onClose, onChange }) {
             )}
           </Card>
 
+          {data.sends?.length > 0 && (
+            <div>
+              <div className="mb-1 text-xs font-bold uppercase text-navy-400">
+                Emails sent ({data.sends.length})
+              </div>
+              <div className="space-y-1.5">
+                {data.sends.map((s) => (
+                  <SentEmail key={s.id} s={s} />
+                ))}
+              </div>
+            </div>
+          )}
+
           {data.enrollments.length > 0 && (
             <div>
               <div className="mb-1 text-xs font-bold uppercase text-navy-400">Campaigns</div>
@@ -392,5 +405,26 @@ function ProspectDrawer({ id, onClose, onChange }) {
         </div>
       )}
     </Drawer>
+  );
+}
+
+function SentEmail({ s }) {
+  const [open, setOpen] = useState(false);
+  return (
+    <Card className="p-2.5">
+      <button className="flex w-full items-center gap-2 text-left" onClick={() => setOpen((o) => !o)}>
+        <span className="text-navy-300">{open ? "▾" : "▸"}</span>
+        <Badge tone="gray">step {s.stepIndex != null ? s.stepIndex + 1 : "—"}</Badge>
+        {s.variantKey && <Badge tone="purple">{s.variantKey}</Badge>}
+        {s.aiGenerated && <Badge tone="teal">AI</Badge>}
+        <span className="grow truncate font-medium text-navy-800">{s.subject}</span>
+        <span className="shrink-0 text-xs text-navy-400">{fmtDate(s.sentAt)}</span>
+      </button>
+      {open && (
+        <pre className="mt-2 max-h-80 overflow-auto whitespace-pre-wrap rounded bg-navy-50 p-2.5 font-sans text-[13px] leading-relaxed text-navy-700">
+          {s.body || "(body not stored — the Sent mailbox didn't have this message)"}
+        </pre>
+      )}
+    </Card>
   );
 }

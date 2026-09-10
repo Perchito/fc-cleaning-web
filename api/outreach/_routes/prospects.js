@@ -5,18 +5,41 @@ import {
   decorate,
   getMeta,
   prospectTimeline,
+  getSends,
+  setSendBody,
 } from "../_lib/prospects.js";
 import { listEnrollmentsForProspect } from "../_lib/campaigns.js";
+import { fetchSentBodies } from "../_lib/imap.js";
 
 export default async function handler(req, res) {
   if (req.method === "GET" && req.query.id) {
     const p = await getProspect(req.query.id);
     if (!p) return res.status(404).json({ error: "not found" });
-    const [timeline, enrollments] = await Promise.all([
+    const [timeline, enrollments, sends] = await Promise.all([
       prospectTimeline(p.id),
       listEnrollmentsForProspect(p.id),
+      getSends(p.id),
     ]);
-    return res.json({ prospect: decorate(p), timeline, enrollments });
+
+    // Sends made before we stored the body (migrated from the old blob) have an
+    // empty body — pull the real text from the Sent mailbox once, then cache it.
+    const missing = sends.filter((s) => !s.body && s.messageId);
+    if (missing.length && req.query.bodies !== "0") {
+      try {
+        const bodies = await fetchSentBodies(missing.map((s) => s.messageId));
+        for (const s of missing) {
+          const text = bodies.get(s.messageId.replace(/^<|>$/g, "").toLowerCase());
+          if (text) {
+            s.body = text;
+            await setSendBody(s.id, text);
+          }
+        }
+      } catch {
+        /* leave bodies empty if the mailbox is unreachable */
+      }
+    }
+
+    return res.json({ prospect: decorate(p), timeline, enrollments, sends });
   }
 
   if (req.method === "GET") {

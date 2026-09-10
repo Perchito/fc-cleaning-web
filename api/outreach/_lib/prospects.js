@@ -114,6 +114,29 @@ export async function getProspect(id) {
   return rows[0] ? rowToProspect(rows[0]) : null;
 }
 
+/** The emails we've sent this prospect (subject + stored body). */
+export async function getSends(id) {
+  const rows = await sql`
+    select id, step_index, variant_key, ai_generated, subject, body, message_id, sent_at
+    from sends
+    where prospect_id = ${id} and status = 'sent'
+    order by sent_at`;
+  return rows.map((r) => ({
+    id: r.id,
+    stepIndex: r.step_index,
+    variantKey: r.variant_key,
+    aiGenerated: r.ai_generated,
+    subject: r.subject,
+    body: r.body || "",
+    messageId: r.message_id,
+    sentAt: iso(r.sent_at),
+  }));
+}
+
+export async function setSendBody(id, body) {
+  await sql`update sends set body = ${body} where id = ${id}`;
+}
+
 /** Full activity timeline for the prospect detail view. */
 export async function prospectTimeline(id) {
   const events = await sql`

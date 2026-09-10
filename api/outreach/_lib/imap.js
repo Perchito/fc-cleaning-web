@@ -386,6 +386,69 @@ export async function auditReplies({ sinceDays = 75 } = {}) {
   return { checked: suspects.length, kept, reverted };
 }
 
+/**
+ * Fetch the plain-text body of sent messages from the Sent mailbox, by
+ * Message-ID. Returns Map(normalisedMessageId -> text). Used to show the exact
+ * email that went to a prospect for sends made before we stored the body.
+ */
+export async function fetchSentBodies(messageIds = []) {
+  const want = new Set(messageIds.map(normId).filter(Boolean));
+  const out = new Map();
+  if (!want.size) return out;
+
+  const client = new ImapFlow({
+    host: config.imap.host,
+    port: config.imap.port,
+    secure: config.imap.secure,
+    auth: { user: config.imap.user, pass: config.imap.pass },
+    logger: false,
+    greetingTimeout: 10000,
+    socketTimeout: 25000,
+  });
+  client.on("error", () => {});
+  await client.connect();
+  try {
+    // find the Sent mailbox (iCloud calls it "Sent Messages")
+    let sentPath = "Sent Messages";
+    try {
+      for (const mb of await client.list()) {
+        if (mb.specialUse === "\\Sent" || /^sent/i.test(mb.name)) {
+          sentPath = mb.path;
+          break;
+        }
+      }
+    } catch {
+      /* fall back to the default name */
+    }
+
+    const since = new Date(Date.now() - 120 * 86_400_000);
+    const uids = [];
+    let lock = await client.getMailboxLock(sentPath);
+    try {
+      for await (const msg of client.fetch({ since }, { uid: true, envelope: true })) {
+        if (want.has(normId(msg.envelope?.messageId))) {
+          uids.push({ uid: msg.uid, mid: normId(msg.envelope.messageId) });
+        }
+      }
+    } finally {
+      lock.release();
+    }
+
+    lock = await client.getMailboxLock(sentPath);
+    try {
+      for (const { uid, mid } of uids) {
+        const parsed = await downloadParsed(client, uid);
+        if (parsed?.text) out.set(mid, parsed.text.trim());
+      }
+    } finally {
+      lock.release();
+    }
+  } finally {
+    await client.logout().catch(() => {});
+  }
+  return out;
+}
+
 async function downloadParsed(client, uid) {
   try {
     const dl = await client.download(uid, undefined, { uid: true });
