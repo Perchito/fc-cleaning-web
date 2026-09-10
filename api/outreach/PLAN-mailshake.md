@@ -1,13 +1,46 @@
-# Outreach → "Mailshake-lite" — implementation plan
+# Outreach → "Mailshake-lite + AI" — implementation
 
-Status: **planning only, not started.** Written 2026-09-10.
+Status: **built on branch `outreach-sequences`, on a Vercel preview, not merged.**
+Started 2026-09-10.
 
 Decisions locked in with Luis:
+- **Ambition:** Mailshake feature set **+ an AI layer** (per-prospect AI drafting,
+  reply classification + suggested replies, website enrichment).
 - **Send model:** *approve the day's batch* — the app queues what's due, Luis
   reviews and hits one button to send. No unattended auto-send.
-- **Storage:** move off the single Vercel Blob JSON file to **Neon Postgres**.
-- **Scope:** Phase 1 first (sequences + queue + approved send). Phase 2 (UI
-  overhaul) and Phase 3 (A/B, multi-identity, calendar) later.
+- **Storage:** Neon Postgres (project `fc-outreach` / `jolly-rain-50949331`).
+- **UI:** a proper React app (`ops/`, its own Vite build → `dist/ops/`).
+- **Send identity:** always `fernando.c@fccleaningcompany.com`.
+- **Cadence default:** the current 3 touches (email → +5d → +5d), seeded as the
+  "Legacy" campaign.
+
+## What shipped
+
+| Area | Where |
+|---|---|
+| Postgres schema + data layer | `_lib/schema.sql`, `_lib/db.js`, `_lib/prospects.js`, `_lib/campaigns.js` |
+| Campaigns / steps / A/B / enrollment | `_routes/campaigns.js`, `_routes/enroll.js`, `_lib/campaigns.js` |
+| Merge fields + validation | `_lib/render.js` |
+| AI: draft / classify / enrich | `_lib/ai.js` (raw fetch → `claude-sonnet-5`), `_routes/enrich.js` |
+| Send engine (queue build, review, send) | `_lib/queue.js`, `_routes/queue.js`, `_routes/sender.js` |
+| Reply inbox | `_routes/replies.js` |
+| Analytics | `_routes/stats.js` |
+| CSV import | `_routes/import.js` |
+| Templates library, live preview | `_routes/templates.js`, `_routes/preview.js` |
+| Suppression list | `_lib/suppression.js` |
+| Daily cron (poll+classify → build queue → enrich → digest) | `_routes/cron.js` |
+| One catch-all function (Hobby 12-fn limit) | `api/outreach/[[...path]].js` → `_routes/*` |
+| React dashboard (Queue/Campaigns/Prospects/Replies/Analytics) | `ops/`, `vite.ops.config.js` |
+| Blob → Postgres migration + Legacy seed | `_routes/migrate.js`, `_lib/seed-campaign.js` |
+
+## Cutover checklist (when Luis approves)
+
+1. Merge `outreach-sequences` → `main` (auto-deploys to prod).
+2. `curl --location-trusted -u fc:$OPS_PASS "https://www.fccleaningcompany.com/api/outreach/migrate?confirm=reset"`
+   — copies the live blob into the prod Neon branch + seeds the Legacy campaign.
+3. Verify prod `/ops`.
+4. Follow-up commit: delete `_routes/migrate.js`, drop `@vercel/blob`.
+5. Rename the Vercel env var `OP_USER` → `OPS_USER` (currently a typo, falls back to `fc`).
 
 ---
 

@@ -45,8 +45,14 @@ const ROUTES = {
 };
 
 export default async function handler(req, res) {
-  const p = req.query.path;
-  const seg = Array.isArray(p) ? p[0] : p || "";
+  // Resolve the route segment. Prefer Vercel's parsed param, fall back to the
+  // raw URL (the optional catch-all doesn't always populate req.query.path).
+  const p = req.query?.path;
+  let seg = Array.isArray(p) ? p[0] : typeof p === "string" ? p : "";
+  if (!seg) {
+    const m = String(req.url || "").match(/\/api\/outreach\/([^/?#]+)/);
+    seg = m ? decodeURIComponent(m[1]) : "";
+  }
   const route = ROUTES[seg];
   if (!route) {
     res.setHeader("Allow", "GET, POST, PATCH, DELETE");
