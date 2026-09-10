@@ -35,15 +35,20 @@ phone (escalation), with a suggested date = last contact + interval.
 
 ## Storage
 
-One JSON file in **Vercel Blob** (`outreach/prospects.json`). On first run,
-if the blob doesn't exist it's seeded from `_lib/seed.js` (the 5 prospects
-contacted 2026-08-31). Back it up occasionally via the Blob dashboard.
+**Neon Postgres** — project `fc-outreach` (`jolly-rain-50949331`). Schema in
+`_lib/schema.sql`; data access in `_lib/prospects.js` (via `_lib/db.js`).
+Production → Neon `main` branch, Vercel Preview → Neon `dev` branch, both via
+the `DATABASE_URL` env var. See `PLAN-mailshake.md` for the wider rebuild.
+
+The old single JSON blob (`outreach/prospects.json`) was migrated across by
+`migrate.js` (a one-off endpoint — safe to delete once prod is verified).
 
 ## Required environment variables (Vercel → Settings → Environment Variables)
 
 | Var | Value |
 |---|---|
-| `BLOB_READ_WRITE_TOKEN` | auto-added when you create the Blob store |
+| `DATABASE_URL` | Neon pooled connection string (Production → `main` branch, Preview → `dev` branch) |
+| `BLOB_READ_WRITE_TOKEN` | legacy — only still needed by `migrate.js` |
 | `ICLOUD_SMTP_USER` | Apple ID / iCloud address (copy from `~/.claude/mcp-servers/icloud-email/.env`) |
 | `ICLOUD_SMTP_PASS` | Apple app-specific password (same source) |
 | `OPS_USER` | dashboard login name (e.g. `fc`) |

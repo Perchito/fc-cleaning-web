@@ -1,11 +1,11 @@
 // Daily lead-research job (Vercel Cron -> see vercel.json). Uses Claude with
 // the web_search / web_fetch server-side tools to find new hospitality-venue
 // prospects with a genuinely published contact email, and adds them to the
-// same Blob store the dashboard reads (status: draft, nothing sends
+// same Postgres store the dashboard reads (status: draft, nothing sends
 // automatically). Self-authenticated like cron.js — Vercel sends
 // "Authorization: Bearer $CRON_SECRET" for every cron-triggered request.
 
-import { load, save, upsertProspect } from "./_lib/store.js";
+import { listProspects, upsertProspect } from "./_lib/prospects.js";
 import { config as appConfig } from "./_lib/config.js";
 
 const MODEL = "claude-sonnet-5";
@@ -35,8 +35,7 @@ export default async function handler(req, res) {
 
   const startedAt = Date.now();
   try {
-    const db = await load();
-    const existingNames = db.prospects.map((p) => p.business);
+    const existingNames = (await listProspects()).map((p) => p.business);
     const added = [];
     let attempts = 0;
     let consecutiveEmpty = 0;
@@ -72,7 +71,7 @@ export default async function handler(req, res) {
           (n) => n.toLowerCase() === String(lead.business).toLowerCase()
         );
         if (dupe) continue;
-        const p = upsertProspect(db, { ...lead, source: "ai-research" });
+        const p = await upsertProspect({ ...lead, source: "ai-research" });
         added.push({ id: p.id, business: p.business, location: p.location || null });
         existingNames.push(lead.business);
         addedThisAttempt++;
@@ -88,8 +87,6 @@ export default async function handler(req, res) {
         consecutiveEmpty = 0;
       }
     }
-
-    if (added.length) await save(db);
 
     return res.json({ ok: true, added, attempts, target: TARGET_COUNT });
   } catch (err) {

@@ -1,11 +1,19 @@
 // Poll the iCloud inbox and reconcile replies / auto-acks / bounces against
 // sent mail. See notes in the local version (outreach/lib/imap.mjs) — same
-// logic, adapted for the async Blob store and the serverless time budget.
+// logic, adapted for the Postgres store and the serverless time budget.
 
 import { ImapFlow } from "imapflow";
 import { simpleParser } from "mailparser";
 import { config } from "./config.js";
-import { load, save, lastSend, nowISO } from "./store.js";
+import {
+  listProspects,
+  lastSend,
+  nowISO,
+  setMeta,
+  applyReply,
+  applyAutoAck,
+  applyBounce,
+} from "./prospects.js";
 
 const TERMINAL = ["replied", "won", "lost", "unsubscribed"];
 
@@ -33,16 +41,16 @@ function looksAutomated(parsed) {
 
 /**
  * @param {object} [opts]
- * @param {object} [opts.db] already-loaded store; mutated and saved in place
+ * @param {object[]} [opts.prospects] already-loaded prospect list (from listProspects)
  * @param {number} [opts.sinceDays]
  */
-export async function pollReplies({ db, sinceDays = 45 } = {}) {
-  const store = db || (await load());
-  const active = store.prospects.filter((p) => !TERMINAL.includes(p.status) && p.sends?.length);
+export async function pollReplies({ prospects, sinceDays = 45 } = {}) {
+  const all = prospects || (await listProspects());
+  const active = all.filter((p) => !TERMINAL.includes(p.status) && p.sends?.length);
   if (!active.length) {
-    store.lastPollAt = nowISO();
-    await save(store);
-    return { checked: 0, replies: [], acks: [], bounces: [], scanned: 0, ranAt: store.lastPollAt };
+    const ranAt = nowISO();
+    await setMeta("lastPollAt", ranAt);
+    return { checked: 0, replies: [], acks: [], bounces: [], scanned: 0, ranAt };
   }
 
   const byMessageId = new Map();
@@ -150,39 +158,36 @@ export async function pollReplies({ db, sinceDays = 45 } = {}) {
     await client.logout().catch(() => {});
   }
 
-  // --- apply onto the same store object ---
+  // --- persist changes ---
+  const byId = new Map(all.map((p) => [p.id, p]));
   const touched = new Set();
   for (const r of replies) {
-    const p = store.prospects.find((x) => x.id === r.prospect.id);
+    const p = byId.get(r.prospect.id);
     if (!p || TERMINAL.includes(p.status)) continue;
     if (p.replyMessageId && p.replyMessageId === r.messageId) continue;
     if (p.lastReplyAt && new Date(p.lastReplyAt) >= new Date(r.at)) continue;
+    await applyReply(p.id, { at: r.at, snippet: r.snippet, messageId: r.messageId });
     p.status = "replied";
     p.lastReplyAt = r.at;
-    p.replySnippet = r.snippet;
     p.replyMessageId = r.messageId;
-    p.updatedAt = nowISO();
     touched.add(p.id);
   }
   for (const a of acks) {
-    const p = store.prospects.find((x) => x.id === a.prospect.id);
+    const p = byId.get(a.prospect.id);
     if (!p || TERMINAL.includes(p.status) || p.status === "replied") continue;
     if (p.autoAckMessageId === a.messageId) continue;
-    p.autoAckAt = a.at;
-    p.autoAckSnippet = a.snippet;
+    await applyAutoAck(p.id, { at: a.at, snippet: a.snippet, messageId: a.messageId });
     p.autoAckMessageId = a.messageId;
-    p.updatedAt = nowISO();
   }
   for (const b of bounces) {
-    const p = store.prospects.find((x) => x.id === b.prospect.id);
+    const p = byId.get(b.prospect.id);
     if (!p || p.status === "replied" || TERMINAL.includes(p.status)) continue;
+    await applyBounce(p.id, { reason: b.reason });
     p.status = "bounced";
-    p.bounceReason = b.reason;
-    p.updatedAt = nowISO();
     touched.add(p.id);
   }
-  store.lastPollAt = nowISO();
-  await save(store);
+  const ranAt = nowISO();
+  await setMeta("lastPollAt", ranAt);
 
   const shape = (r) => ({
     id: r.prospect.id,
@@ -200,7 +205,7 @@ export async function pollReplies({ db, sinceDays = 45 } = {}) {
     bounces: bounces
       .filter((b) => touched.has(b.prospect.id))
       .map((b) => ({ id: b.prospect.id, business: b.prospect.business, reason: b.reason })),
-    ranAt: store.lastPollAt,
+    ranAt,
   };
 }
 

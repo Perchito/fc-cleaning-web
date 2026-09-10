@@ -1,5 +1,5 @@
 import { config } from "./config.js";
-import { decorate } from "./store.js";
+import { decorate } from "./prospects.js";
 import { sendDigest } from "./mailer.js";
 
 /**
@@ -23,7 +23,7 @@ export async function maybeSendDigest(store, pollResult) {
   }
   if (due.length) {
     lines.push(`FOLLOW-UPS DUE (${due.length}):`);
-    for (const p of due) lines.push(`  • ${p.business} — ${p.daysSinceLastSend}d since last contact`);
+    for (const p of due) lines.push(`  • ${p.business} — ${p.daysSinceLastContact}d since last contact`);
     lines.push("");
   }
   if (pollResult.bounces.length) {
