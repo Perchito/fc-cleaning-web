@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { useResource, post, toast, timeAgo } from "../api.js";
+import { useResource, post, toast, timeAgo, pollJob } from "../api.js";
 import { PageHead } from "../App.jsx";
 import { Button, Badge, Card, Loading, ErrorBox, Empty, TextArea } from "../ui.jsx";
 
@@ -61,12 +61,19 @@ function ReplyCard({ it, reload }) {
     try {
       const r = await post("/replies", { eventId: it.id, action, ...body });
       if (action === "regenerate") {
-        setReply(r.suggestedReply || "");
-        toast(`Re-classified: ${r.intent}`, "success");
+        if (r.pending) {
+          toast("Queued — the home worker is on it…");
+          const done = await pollJob(r.jobId);
+          toast(done.ok ? "Re-classified" : done.error, done.ok ? "success" : "error");
+          reload();
+        } else {
+          setReply(r.suggestedReply || "");
+          toast(`Re-classified: ${r.intent}`, "success");
+        }
       } else {
         toast("Done", "success");
+        reload();
       }
-      if (action !== "regenerate") reload();
     } catch (e) {
       toast(e.message, "error");
     } finally {
@@ -85,6 +92,7 @@ function ReplyCard({ it, reload }) {
             {it.confidence != null && ` ${Math.round(it.confidence * 100)}%`}
           </Badge>
         )}
+        {it.type === "reply" && it.aiPending && <Badge tone="amber">classifying…</Badge>}
         {it.type === "bounce" && <Badge tone="rose">bounced</Badge>}
         {it.type === "auto_reply" && <Badge tone="gray">auto</Badge>}
         <span className="grow" />

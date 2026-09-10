@@ -152,6 +152,7 @@ function QueueItem({ item, busy, act }) {
         <Badge tone="gray">step {item.stepIndex + 1}</Badge>
         {item.variantKey && <Badge tone="purple">{item.variantKey}</Badge>}
         {item.aiGenerated && <Badge tone="teal">AI</Badge>}
+        {item.aiPending && <Badge tone="amber">AI draft generating…</Badge>}
         {item.status === "approved" && <Badge tone="green">approved</Badge>}
         {item.status === "failed" && <Badge tone="rose">failed</Badge>}
         {blocked && <Badge tone="amber">missing: {item.unresolved.join(", ")}</Badge>}
@@ -185,7 +186,11 @@ function QueueItem({ item, busy, act }) {
 
       <div className="mt-2.5 flex flex-wrap gap-1.5">
         {item.status === "queued" && (
-          <Button size="sm" onClick={() => act("approve", [item.id])} disabled={!!busy || blocked || dirty}>
+          <Button
+            size="sm"
+            onClick={() => act("approve", [item.id])}
+            disabled={!!busy || blocked || dirty || item.aiPending}
+          >
             Approve
           </Button>
         )}

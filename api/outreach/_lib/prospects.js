@@ -270,17 +270,20 @@ export async function updateResearch(id, { research, hook }) {
 }
 
 // --- inbound reconciliation (used by the IMAP poll) ---
-export async function applyReply(id, { at, snippet, messageId, analysis, campaignId, enrollmentId }) {
+export async function applyReply(
+  id,
+  { at, snippet, messageId, analysis, aiPending = false, campaignId, enrollmentId },
+) {
   await sql`
     update prospects
       set status = 'replied', last_reply_at = ${at}, reply_snippet = ${snippet},
           reply_message_id = ${messageId}, updated_at = now()
     where id = ${id}`;
-  await sql`
-    insert into events (prospect_id, campaign_id, enrollment_id, type, intent, at, snippet, message_id, meta)
+  const [ev] = await sql`
+    insert into events (prospect_id, campaign_id, enrollment_id, type, intent, ai_pending, at, snippet, message_id, meta)
     values (
       ${id}, ${campaignId ?? null}, ${enrollmentId ?? null}, 'reply',
-      ${analysis?.intent ?? null}, ${at}, ${snippet}, ${messageId},
+      ${analysis?.intent ?? null}, ${aiPending}, ${at}, ${snippet}, ${messageId},
       ${JSON.stringify(
         analysis
           ? {
@@ -290,7 +293,9 @@ export async function applyReply(id, { at, snippet, messageId, analysis, campaig
             }
           : {},
       )}::jsonb
-    )`;
+    )
+    returning id`;
+  return ev.id;
 }
 
 export async function applyAutoAck(id, { at, snippet, messageId }) {

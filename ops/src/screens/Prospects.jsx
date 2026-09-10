@@ -1,5 +1,5 @@
 import { useMemo, useState } from "react";
-import { useResource, api, post, toast, timeAgo, fmtDate } from "../api.js";
+import { useResource, api, post, toast, timeAgo, fmtDate, pollJob } from "../api.js";
 import { PageHead } from "../App.jsx";
 import { Button, Badge, Card, Loading, ErrorBox, Empty, Modal, Drawer, Field, Input, Select, TextArea } from "../ui.jsx";
 
@@ -291,8 +291,14 @@ function ProspectDrawer({ id, onClose, onChange }) {
   async function research() {
     setBusy(true);
     try {
-      await post("/enrich", { prospectId: id });
-      toast("Researched", "success");
+      const r = await post("/enrich", { prospectId: id });
+      if (r.pending) {
+        toast("Queued — the home worker is on it…");
+        const done = await pollJob(r.jobId);
+        toast(done.ok ? "Research done" : done.error, done.ok ? "success" : "error");
+      } else {
+        toast("Research done", "success");
+      }
       reload();
     } catch (e) {
       toast(e.message, "error");

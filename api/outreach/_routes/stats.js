@@ -2,7 +2,7 @@
 // per-variant breakdowns, and a 14-day activity series.
 
 import { sql } from "../_lib/db.js";
-import { aiEnabled, aiSpendToday } from "../_lib/ai.js";
+import { aiEnabled, aiBackend, aiSpendToday } from "../_lib/ai.js";
 
 export default async function handler(req, res) {
   if (req.method !== "GET") {
@@ -10,7 +10,8 @@ export default async function handler(req, res) {
     return res.status(405).json({ error: "method not allowed" });
   }
 
-  const ai = { enabled: aiEnabled(), ...(await aiSpendToday()) };
+  const [{ pj }] = await sql`select count(*)::int as pj from ai_jobs where status in ('pending','running')`;
+  const ai = { enabled: aiEnabled(), backend: aiBackend(), pendingJobs: pj, ...(await aiSpendToday()) };
 
   const [overall] = await sql`
     select

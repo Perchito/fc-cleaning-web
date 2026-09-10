@@ -5,7 +5,8 @@ import { sql } from "../_lib/db.js";
 import { getProspect, setStatus, lastSend } from "../_lib/prospects.js";
 import { sendMail } from "../_lib/mailer.js";
 import { suppress } from "../_lib/suppression.js";
-import { classifyReply, aiEnabled } from "../_lib/ai.js";
+import { classifyReply, classifySpec, aiEnabled, aiBackend } from "../_lib/ai.js";
+import { enqueueJob } from "../_lib/jobs.js";
 
 function row(r) {
   return {
@@ -22,6 +23,7 @@ function row(r) {
     snippet: r.snippet,
     messageId: r.message_id,
     handled: r.handled,
+    aiPending: r.ai_pending,
     confidence: r.meta?.confidence ?? null,
     summary: r.meta?.summary ?? null,
     suggestedReply: r.meta?.suggested_reply ?? null,
@@ -72,6 +74,14 @@ export default async function handler(req, res) {
   if (action === "regenerate") {
     if (!aiEnabled())
       return res.status(409).json({ error: "AI is off — set OUTREACH_AI=on in Vercel" });
+    if (aiBackend() === "worker") {
+      await sql`update events set ai_pending = true where id = ${eventId}`;
+      const jobId = await enqueueJob(
+        classifySpec({ prospect: p, replyText: ev.snippet, lastSentSubject: lastSend(p)?.subject }),
+        { eventId, prospectId: p.id },
+      );
+      return res.json({ ok: true, pending: true, jobId });
+    }
     try {
       const a = await classifyReply({
         prospect: p,

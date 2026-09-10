@@ -9,7 +9,8 @@
 import { listProspects, updateResearch } from "../_lib/prospects.js";
 import { pollReplies } from "../_lib/imap.js";
 import { buildQueue } from "../_lib/queue.js";
-import { enrichProspect } from "../_lib/ai.js";
+import { enrichProspect, enrichSpec, aiEnabled, aiBackend } from "../_lib/ai.js";
+import { enqueueJob } from "../_lib/jobs.js";
 import { maybeSendDigest } from "../_lib/digest.js";
 import { config as appConfig } from "../_lib/config.js";
 
@@ -35,22 +36,29 @@ export default async function handler(req, res) {
   }
 
   try {
-    const need = (await listProspects()).filter(
-      (p) => !p.research && !["unsubscribed", "bounced", "lost"].includes(p.status),
-    );
-    const enriched = [];
-    for (const p of need.slice(0, ENRICH_PER_RUN)) {
-      try {
-        const r = await enrichProspect(p);
-        if (r) {
-          await updateResearch(p.id, r);
-          enriched.push(p.id);
+    if (aiEnabled()) {
+      const need = (await listProspects()).filter(
+        (p) => !p.research && !["unsubscribed", "bounced", "lost"].includes(p.status),
+      );
+      const done = [];
+      for (const p of need.slice(0, ENRICH_PER_RUN)) {
+        if (aiBackend() === "worker") {
+          await enqueueJob(enrichSpec(p), { prospectId: p.id });
+          done.push(p.id);
+        } else {
+          try {
+            const r = await enrichProspect(p);
+            if (r) {
+              await updateResearch(p.id, r);
+              done.push(p.id);
+            }
+          } catch {
+            /* skip */
+          }
         }
-      } catch {
-        /* skip */
       }
+      out.enriched = done;
     }
-    out.enriched = enriched;
   } catch (err) {
     out.enrichError = String(err.message || err);
   }

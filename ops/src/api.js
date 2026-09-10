@@ -82,6 +82,22 @@ export function useToasts() {
 
 // ─────────────────────────────── formatting ───────────────────────────────
 
+/** Poll an ai_jobs row until it's done/failed (or timeout). */
+export async function pollJob(jobId, { every = 4000, timeout = 150000 } = {}) {
+  const until = Date.now() + timeout;
+  while (Date.now() < until) {
+    await new Promise((r) => setTimeout(r, every));
+    try {
+      const { job } = await api(`/jobs?id=${jobId}`);
+      if (job.status === "done") return { ok: true };
+      if (job.status === "failed") return { ok: false, error: job.error || "job failed" };
+    } catch {
+      /* keep polling */
+    }
+  }
+  return { ok: false, error: "timed out — the worker may be offline" };
+}
+
 export const pct = (x) => `${Math.round((x || 0) * 100)}%`;
 
 export function timeAgo(iso) {

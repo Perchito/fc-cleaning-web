@@ -4,7 +4,9 @@
 import { sql } from "./db.js";
 import { getProspect, nowISO } from "./prospects.js";
 import { render, validate, withFooter } from "./render.js";
-import { draftEmail, aiEnabled } from "./ai.js";
+import { draftEmail, aiEnabled, aiBackend, draftSpec, normDraft } from "./ai.js";
+import { runViaApi } from "./ai.js";
+import { enqueueJob } from "./jobs.js";
 import { sendMail } from "./mailer.js";
 import { suppressedSet } from "./suppression.js";
 
@@ -110,30 +112,35 @@ export async function buildQueue() {
       const round = e.current_step + 1;
       const variant = await pickVariant(step, c);
 
-      let subject, body, aiGenerated = false;
-      if (step.mode === "ai" && aiEnabled()) {
+      // Always render the template first — it's the fallback that guarantees
+      // the queue is never blocked waiting on AI.
+      const subjTmpl = variant === "B" && step.subject_tmpl_b ? step.subject_tmpl_b : step.subject_tmpl;
+      const bodyTmpl = variant === "B" && step.body_tmpl_b ? step.body_tmpl_b : step.body_tmpl;
+      let subject = render(subjTmpl || `Cleaning for {{business}}`, p);
+      let body = withFooter(render(bodyTmpl || "", p), p);
+      let aiGenerated = false;
+      let aiPending = false;
+      const wantAI = step.mode === "ai" && aiEnabled();
+
+      if (wantAI && aiBackend() === "api") {
         if (aiBudget <= 0) {
           summary.skipped.push({ prospectId: e.prospect_id, reason: "AI draft budget — will retry next run" });
           continue;
         }
         aiBudget--;
         try {
-          const d = await draftEmail(p, { aiGuidance: step.ai_guidance }, { round });
+          const d = normDraft(await runViaApi(draftSpec(p, { aiGuidance: step.ai_guidance }, { round })), p);
           if (d) {
             subject = d.subject;
-            body = withFooter(d.bodyCore, p);
+            body = d.body;
             aiGenerated = true;
             summary.aiDrafts++;
           }
         } catch {
-          // fall back to the template if the AI call fails
+          /* keep the template */
         }
-      }
-      if (subject == null) {
-        const subjTmpl = variant === "B" && step.subject_tmpl_b ? step.subject_tmpl_b : step.subject_tmpl;
-        const bodyTmpl = variant === "B" && step.body_tmpl_b ? step.body_tmpl_b : step.body_tmpl;
-        subject = render(subjTmpl || `Cleaning for {{business}}`, p);
-        body = withFooter(render(bodyTmpl || "", p), p);
+      } else if (wantAI && aiBackend() === "worker") {
+        aiPending = true;
       }
 
       // threading off the prospect's last send
@@ -144,15 +151,25 @@ export async function buildQueue() {
       const inReplyTo = prev[0]?.message_id || null;
       const refs = prev.map((r) => r.message_id).reverse().join(" ") || null;
 
-      await sql`
+      const [ins] = await sql`
         insert into sends
           (enrollment_id, prospect_id, campaign_id, step_id, step_index, variant_key,
-           ai_generated, subject, body, status, in_reply_to, thread_refs, queued_for)
+           ai_generated, ai_pending, subject, body, status, in_reply_to, thread_refs, queued_for)
         values (
           ${e.id}, ${e.prospect_id}, ${c.id}, ${step.id}, ${e.current_step},
-          ${step.ab_enabled ? variant : null}, ${aiGenerated}, ${subject}, ${body},
+          ${step.ab_enabled ? variant : null}, ${aiGenerated}, ${aiPending}, ${subject}, ${body},
           'queued', ${inReplyTo}, ${refs}, ${today}
-        )`;
+        )
+        returning id`;
+
+      if (aiPending) {
+        await enqueueJob(draftSpec(p, { aiGuidance: step.ai_guidance }, { round }), {
+          sendId: ins.id,
+          prospectId: e.prospect_id,
+        });
+        summary.aiDrafts++;
+      }
+
       budget--;
       summary.queued++;
       summary.byCampaign[c.name] = (summary.byCampaign[c.name] || 0) + 1;
@@ -187,6 +204,7 @@ export async function getQueue({ day } = {}) {
     stepIndex: r.step_index,
     variantKey: r.variant_key,
     aiGenerated: r.ai_generated,
+    aiPending: r.ai_pending,
     subject: r.subject,
     body: r.body,
     status: r.status,
@@ -231,7 +249,7 @@ export async function queueAction({ action, ids = [], patch = {} }) {
     const day = londonToday();
     if (action === "approve_all") {
       await sql`update sends set status='approved', approved_at=now()
-               where queued_for=${day} and status='queued'
+               where queued_for=${day} and status='queued' and ai_pending = false
                  and not exists (select 1 from suppression x where x.email =
                    (select email from prospects p where p.id = sends.prospect_id))`;
     } else {

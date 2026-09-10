@@ -23,11 +23,20 @@ export default function Analytics() {
             }`}
           >
             AI layer is <b>{data.ai.enabled ? "ON" : "OFF"}</b>
-            {data.ai.enabled && (
+            {data.ai.enabled && data.ai.backend === "worker" && (
               <>
-                {" "}· today: <b>${(data.ai.usd || 0).toFixed(2)}</b> across {data.ai.calls || 0} call
-                {data.ai.calls === 1 ? "" : "s"} (auto-stops at the daily cap)
+                {" "}· running on the <b>home worker</b> (subscription, no API cost)
+                {data.ai.pendingJobs > 0 && <> · {data.ai.pendingJobs} job(s) in the queue</>}
               </>
+            )}
+            {data.ai.enabled && data.ai.backend === "api" && (
+              <>
+                {" "}· Anthropic <b>API</b> · today: <b>${(data.ai.usd || 0).toFixed(2)}</b> across{" "}
+                {data.ai.calls || 0} call{data.ai.calls === 1 ? "" : "s"} (auto-stops at the daily cap)
+              </>
+            )}
+            {data.ai.enabled && data.ai.backend === "off" && (
+              <> — no backend: set <code>ANTHROPIC_API_KEY</code> or <code>AI_BACKEND=worker</code></>
             )}
             {!data.ai.enabled && <> — set <code>OUTREACH_AI=on</code> in Vercel to enable</>}
           </div>

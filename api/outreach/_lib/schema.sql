@@ -100,6 +100,7 @@ create table if not exists sends (
   step_index    int,
   variant_key   text,                                 -- 'A' | 'B' | null
   ai_generated  boolean not null default false,
+  ai_pending    boolean not null default false,  -- worker is still drafting this one
   subject       text not null,
   body          text not null,
   status        text not null default 'queued',       -- queued|approved|sent|failed|skipped
@@ -129,6 +130,7 @@ create table if not exists events (
   snippet       text,
   message_id    text,
   handled       boolean not null default false,
+  ai_pending    boolean not null default false,  -- worker is still classifying this reply
   meta          jsonb not null default '{}'           -- {confidence, suggested_reply, variant_key, ...}
 );
 create index if not exists events_type_at_idx on events (type, at desc);
@@ -144,6 +146,25 @@ create table if not exists templates (
   created_at   timestamptz not null default now(),
   updated_at   timestamptz not null default now()
 );
+
+-- ─────────────────────────────── ai_jobs ───────────────────────────────
+-- Work queue for the home Claude Code worker (AI_BACKEND=worker). The site
+-- enqueues a fully-built prompt; the always-on machine claims it, runs it on
+-- the Claude subscription, and posts the result back. sends.ai_pending /
+-- events.ai_pending flag rows whose AI version hasn't landed yet.
+create table if not exists ai_jobs (
+  id          uuid primary key default gen_random_uuid(),
+  kind        text not null,               -- draft | classify | enrich | discover
+  status      text not null default 'pending',  -- pending | running | done | failed
+  input       jsonb not null default '{}',      -- { system, prompt, tools[], expect, ref }
+  output      jsonb,
+  error       text,
+  attempts    int not null default 0,
+  created_at  timestamptz not null default now(),
+  claimed_at  timestamptz,
+  finished_at timestamptz
+);
+create index if not exists ai_jobs_queue_idx on ai_jobs (status, created_at);
 
 -- ─────────────────────────────── meta ───────────────────────────────
 create table if not exists meta (k text primary key, v jsonb not null);

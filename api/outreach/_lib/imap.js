@@ -16,7 +16,8 @@ import {
 } from "./prospects.js";
 import { stopEnrollmentsForProspect } from "./campaigns.js";
 import { suppress, looksLikeUnsubscribe } from "./suppression.js";
-import { classifyReply, aiEnabled } from "./ai.js";
+import { classifyReply, aiBackend, classifySpec } from "./ai.js";
+import { enqueueJob } from "./jobs.js";
 import { sql } from "./db.js";
 
 const MAX_CLASSIFY_PER_POLL = 6;
@@ -175,9 +176,12 @@ export async function pollReplies({ prospects, sinceDays = 45 } = {}) {
     if (p.lastReplyAt && new Date(p.lastReplyAt) >= new Date(r.at)) continue;
 
     const unsub = looksLikeUnsubscribe(r.snippet);
+    const backend = aiBackend();
 
     let analysis;
-    if (!unsub && aiEnabled() && classified < MAX_CLASSIFY_PER_POLL) {
+    if (unsub) {
+      analysis = { intent: "unsubscribe", confidence: 0.9, summary: "asked to be removed", suggestedReply: "" };
+    } else if (backend === "api" && classified < MAX_CLASSIFY_PER_POLL) {
       classified++;
       try {
         analysis = await classifyReply({
@@ -189,7 +193,7 @@ export async function pollReplies({ prospects, sinceDays = 45 } = {}) {
         /* best effort */
       }
     }
-    if (unsub) analysis = { intent: "unsubscribe", confidence: 0.9, summary: "asked to be removed", suggestedReply: "" };
+    const aiPending = !unsub && !analysis && backend === "worker";
 
     // link the reply to the campaign/enrollment it belongs to, if any
     const enr = (
@@ -197,14 +201,21 @@ export async function pollReplies({ prospects, sinceDays = 45 } = {}) {
                where prospect_id = ${p.id} order by enrolled_at desc limit 1`
     )[0];
 
-    await applyReply(p.id, {
+    const eventId = await applyReply(p.id, {
       at: r.at,
       snippet: r.snippet,
       messageId: r.messageId,
       analysis,
+      aiPending,
       campaignId: enr?.campaign_id,
       enrollmentId: enr?.id,
     });
+    if (aiPending) {
+      await enqueueJob(
+        classifySpec({ prospect: p, replyText: r.snippet, lastSentSubject: lastSend(p)?.subject }),
+        { eventId, prospectId: p.id },
+      );
+    }
     await stopEnrollmentsForProspect(p.id, unsub ? "unsubscribed" : "replied");
     if (unsub || analysis?.intent === "unsubscribe") {
       await sql`update prospects set status = 'unsubscribed', updated_at = now() where id = ${p.id}`;

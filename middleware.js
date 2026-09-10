@@ -7,9 +7,12 @@ export const config = {
 };
 
 export default function middleware(req) {
-  const { pathname } = new URL(req.url);
+  const { pathname, searchParams } = new URL(req.url);
   if (pathname === "/api/outreach/cron") return; // self-authenticated
   if (pathname === "/api/outreach/discover") return; // self-authenticated
+  // the home worker authenticates with WORKER_SECRET; a job status check (?id=)
+  // still needs Basic auth so the dashboard can poll it.
+  if (pathname === "/api/outreach/jobs" && !searchParams.get("id")) return;
 
   const user = (process.env.OPS_USER || "fc").trim();
   const pass = (process.env.OPS_PASS || "").trim();

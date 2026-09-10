@@ -11,6 +11,7 @@ import draft from "./_routes/draft.js";
 import enrich from "./_routes/enrich.js";
 import enroll from "./_routes/enroll.js";
 import importCsv from "./_routes/import.js";
+import jobs from "./_routes/jobs.js";
 import migrate from "./_routes/migrate.js";
 import poll from "./_routes/poll.js";
 import preview from "./_routes/preview.js";
@@ -33,6 +34,7 @@ const ROUTES = {
   enrich,
   enroll,
   import: importCsv,
+  jobs,
   migrate,
   poll,
   preview,

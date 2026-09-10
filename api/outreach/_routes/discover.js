@@ -7,7 +7,8 @@
 
 import { listProspects, upsertProspect } from "../_lib/prospects.js";
 import { config as appConfig } from "../_lib/config.js";
-import { aiBudgetOk, recordAiSpend, aiCostOf } from "../_lib/ai.js";
+import { aiBudgetOk, recordAiSpend, aiCostOf, aiBackend, discoverSpec } from "../_lib/ai.js";
+import { enqueueJob } from "../_lib/jobs.js";
 
 const MODEL = "claude-sonnet-5";
 const TARGET_COUNT = 3;
@@ -37,6 +38,17 @@ export default async function handler(req, res) {
   if (process.env.OUTREACH_AI !== "on") {
     return res.json({ ok: true, skipped: "OUTREACH_AI is not 'on'", added: [] });
   }
+
+  // Worker backend: hand it to the home Claude Code machine, don't touch the API.
+  if (aiBackend() === "worker") {
+    const existingNames = (await listProspects()).map((p) => p.business);
+    const jobId = await enqueueJob(
+      discoverSpec({ area: req.query.area, count: TARGET_COUNT, existingNames }),
+      {},
+    );
+    return res.json({ ok: true, queuedJob: jobId });
+  }
+
   if (!(await aiBudgetOk())) {
     return res.json({ ok: true, skipped: "daily AI budget reached", added: [] });
   }
