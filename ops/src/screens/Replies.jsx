@@ -55,6 +55,8 @@ export default function Replies() {
 function ReplyCard({ it, reload }) {
   const [reply, setReply] = useState(it.suggestedReply || "");
   const [busy, setBusy] = useState(null);
+  const [expanded, setExpanded] = useState(false);
+  const longReply = (it.snippet || "").length > 320;
 
   async function act(action, body) {
     setBusy(action);
@@ -101,9 +103,21 @@ function ReplyCard({ it, reload }) {
 
       {it.summary && <p className="mt-1 text-sm font-medium text-navy-700">{it.summary}</p>}
 
-      <div className="mt-2 rounded-lg bg-navy-50 p-3 text-sm text-navy-600 whitespace-pre-wrap line-clamp-6">
+      <div
+        className={`mt-2 whitespace-pre-wrap rounded-lg bg-navy-50 p-3 text-sm text-navy-600 ${
+          expanded ? "max-h-none" : "max-h-40 overflow-y-auto"
+        }`}
+      >
         {it.snippet}
       </div>
+      {longReply && (
+        <button
+          className="mt-1 text-xs font-semibold text-navy-500 hover:text-navy-800"
+          onClick={() => setExpanded((v) => !v)}
+        >
+          {expanded ? "Show less" : "Show full message"}
+        </button>
+      )}
 
       {it.type === "reply" && it.intent !== "unsubscribe" && (
         <div className="mt-3">

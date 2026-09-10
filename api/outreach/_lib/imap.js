@@ -475,5 +475,5 @@ function cleanSnippet(text) {
     .join("\n")
     .replace(/\n{3,}/g, "\n\n")
     .trim()
-    .slice(0, 400);
+    .slice(0, 2000);
 }
