@@ -319,10 +319,14 @@ optional open tracking (only if a real need appears).
 
 ## 11. Suggested build order (Phase 1)
 
-1. **Storage cut-over, no behaviour change:** `_lib/db.js`, `schema.sql`,
-   migration script, move `prospects.js` / `status.js` / `call.js` / `poll.js`
-   / `imap.js` / `digest.js` onto Postgres. Ship. Verify the current dashboard
-   works identically off Neon.
+1. **Storage cut-over, no behaviour change** — ✅ DONE (branch `outreach-sequences`,
+   not yet merged). `_lib/db.js`, `_lib/schema.sql`, `_lib/prospects.js`
+   (replaces `store.js`), `migrate.js` (one-off). Ported prospects / status /
+   call / send / draft / poll / imap / cron / digest / discover. Verified on a
+   Vercel preview: the `/prospects` API is byte-identical to prod across all 26
+   prospects; all read+write endpoints and the IMAP poll work against Neon.
+   **Cutover still to do:** merge → deploy → run `migrate.js?confirm=reset` on
+   prod → verify → delete `migrate.js` + drop `@vercel/blob`.
 2. Campaign + step + enrollment CRUD (`campaigns.js`, `enroll.js`) +
    `render.js` merge fields + seed the "Legacy" campaign.
 3. `cron-queue.js` + `queue.js` (review) + `sender.js` + enrolment
