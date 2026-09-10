@@ -127,7 +127,8 @@ async function applyResult(kind, ref, output) {
     const added = [];
     for (const lead of leads) {
       if (!lead?.business || !lead?.email) continue;
-      const p = await upsertProspect({ ...lead, source: "ai-research (worker)" });
+      const notes = [lead.ownership, lead.notes].filter(Boolean).join(" — ");
+      const p = await upsertProspect({ ...lead, notes, source: "ai-research (worker)" });
       added.push(p.id);
     }
     // If a campaign was chosen in "Find leads", enrol the new ones and build
