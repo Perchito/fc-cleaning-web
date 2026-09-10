@@ -2,6 +2,7 @@
 // a deployment at 12 functions, so every route lives in _routes/ and this
 // dispatches to it by the first path segment:  /api/outreach/<segment>[/…]
 
+import audit from "./_routes/audit.js";
 import call from "./_routes/call.js";
 import campaigns from "./_routes/campaigns.js";
 import cron from "./_routes/cron.js";
@@ -23,6 +24,7 @@ import status from "./_routes/status.js";
 import templates from "./_routes/templates.js";
 
 const ROUTES = {
+  audit,
   call,
   campaigns,
   cron,

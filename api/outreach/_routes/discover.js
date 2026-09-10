@@ -32,6 +32,10 @@ export default async function handler(req, res) {
   if (!process.env.ANTHROPIC_API_KEY) {
     return res.status(500).json({ error: "ANTHROPIC_API_KEY not configured" });
   }
+  // Master AI switch — no lead research (and no credit spend) until OUTREACH_AI=on
+  if (process.env.OUTREACH_AI !== "on") {
+    return res.json({ ok: true, skipped: "OUTREACH_AI is not 'on'", added: [] });
+  }
 
   const startedAt = Date.now();
   try {

@@ -16,7 +16,7 @@ import {
 } from "./prospects.js";
 import { stopEnrollmentsForProspect } from "./campaigns.js";
 import { suppress, looksLikeUnsubscribe } from "./suppression.js";
-import { classifyReply } from "./ai.js";
+import { classifyReply, aiEnabled } from "./ai.js";
 import { sql } from "./db.js";
 
 const MAX_CLASSIFY_PER_POLL = 6;
@@ -80,6 +80,7 @@ export async function pollReplies({ prospects, sinceDays = 45 } = {}) {
   let scanned = 0;
   const candidates = [];
 
+  client.on("error", () => {}); // a socket error must not crash the function
   await client.connect();
   let lock = await client.getMailboxLock("INBOX");
   try {
@@ -112,13 +113,12 @@ export async function pollReplies({ prospects, sinceDays = 45 } = {}) {
         continue;
       }
 
+      // Match ONLY on a real thread reference to one of our sent emails, or on
+      // an exact from-address match. The old "same email domain" fallback
+      // mis-attributed cold pitches from @gmail.com senders to gmail prospects.
       let matched = null;
       for (const id of refIds) if (byMessageId.has(id)) matched = byMessageId.get(id);
       if (!matched && byEmail.has(fromAddr)) matched = byEmail.get(fromAddr);
-      if (!matched && fromAddr.includes("@")) {
-        const dom = fromAddr.split("@")[1];
-        for (const [email, p] of byEmail) if (email.split("@")[1] === dom) matched = p;
-      }
       if (!matched) continue;
 
       const ls = lastSend(matched);
@@ -177,7 +177,7 @@ export async function pollReplies({ prospects, sinceDays = 45 } = {}) {
     const unsub = looksLikeUnsubscribe(r.snippet);
 
     let analysis;
-    if (!unsub && classified < MAX_CLASSIFY_PER_POLL) {
+    if (!unsub && aiEnabled() && classified < MAX_CLASSIFY_PER_POLL) {
       classified++;
       try {
         analysis = await classifyReply({
@@ -252,6 +252,118 @@ export async function pollReplies({ prospects, sinceDays = 45 } = {}) {
       .map((b) => ({ id: b.prospect.id, business: b.prospect.business, reason: b.reason })),
     ranAt,
   };
+}
+
+/**
+ * Re-check every prospect currently marked as replied against the inbox. A
+ * reply only counts if it's from the prospect's exact address, or it threads
+ * (In-Reply-To / References) off one of our sent emails — and isn't automated.
+ * Anything that doesn't hold up is reverted (status back to awaiting_reply /
+ * draft, reply fields + reply events cleared, a stopped enrollment reactivated).
+ */
+export async function auditReplies({ sinceDays = 75 } = {}) {
+  const all = await listProspects();
+  const suspects = all.filter(
+    (p) => p.status === "replied" || p.lastReplyAt || p.replyMessageId,
+  );
+  if (!suspects.length) return { checked: 0, kept: [], reverted: [] };
+
+  const byMessageId = new Map();
+  const byEmail = new Map();
+  for (const p of suspects) {
+    byEmail.set(p.email.toLowerCase(), p.id);
+    for (const s of p.sends || []) if (s.messageId) byMessageId.set(normId(s.messageId), p.id);
+  }
+
+  const since = new Date(Date.now() - sinceDays * 86_400_000);
+  const client = new ImapFlow({
+    host: config.imap.host,
+    port: config.imap.port,
+    secure: config.imap.secure,
+    auth: { user: config.imap.user, pass: config.imap.pass },
+    logger: false,
+    greetingTimeout: 10000,
+    socketTimeout: 25000,
+  });
+
+  const genuine = new Map(); // prospectId -> { messageId, at, snippet, from }
+  client.on("error", () => {}); // don't let a socket error crash the function
+  await client.connect();
+  const lock = await client.getMailboxLock("INBOX");
+  try {
+    for await (const msg of client.fetch(
+      { since },
+      { uid: true, envelope: true, headers: ["in-reply-to", "references"] },
+    )) {
+      const env = msg.envelope || {};
+      const fromAddr = (env.from?.[0]?.address || "").toLowerCase();
+      const headerText = (msg.headers || Buffer.alloc(0)).toString();
+      const refIds = new Set([
+        ...idsFromHeader((headerText.match(/^in-reply-to:(.*)$/im) || [])[1]),
+        ...idsFromHeader((headerText.match(/^references:(.*)$/im) || [])[1]),
+      ]);
+
+      let pid = null;
+      for (const id of refIds) if (byMessageId.has(id)) pid = byMessageId.get(id);
+      if (!pid && byEmail.has(fromAddr)) pid = byEmail.get(fromAddr);
+      if (!pid) continue;
+
+      const parsed = await downloadParsed(client, msg.uid);
+      if (looksAutomated({ ...parsed, subject: env.subject })) continue;
+
+      const at = env.date ? new Date(env.date) : new Date();
+      const prev = genuine.get(pid);
+      if (!prev || at > new Date(prev.at)) {
+        genuine.set(pid, {
+          messageId: normId(env.messageId),
+          at: at.toISOString(),
+          snippet: cleanSnippet(parsed?.text || env.subject || ""),
+          from: fromAddr,
+        });
+      }
+    }
+  } finally {
+    lock.release();
+    await client.logout().catch(() => {});
+  }
+
+  const kept = [];
+  const reverted = [];
+  for (const p of suspects) {
+    const g = genuine.get(p.id);
+    if (g) {
+      await sql`
+        update prospects set status = 'replied', last_reply_at = ${g.at},
+          reply_snippet = ${g.snippet}, reply_message_id = ${g.messageId}, updated_at = now()
+        where id = ${p.id}`;
+      await sql`delete from events where prospect_id = ${p.id} and type = 'reply'
+               and (message_id is null or message_id <> ${g.messageId})`;
+      const ex = await sql`
+        select 1 from events where prospect_id = ${p.id} and type = 'reply' and message_id = ${g.messageId}`;
+      if (!ex.length)
+        await sql`
+          insert into events (prospect_id, type, at, snippet, message_id)
+          values (${p.id}, 'reply', ${g.at}, ${g.snippet}, ${g.messageId})`;
+      kept.push({ id: p.id, business: p.business, from: g.from });
+    } else {
+      const newStatus = p.sends?.length ? "awaiting_reply" : "draft";
+      await sql`
+        update prospects set status = ${newStatus}, last_reply_at = null,
+          reply_snippet = null, reply_message_id = null, updated_at = now()
+        where id = ${p.id}`;
+      await sql`delete from events where prospect_id = ${p.id} and type = 'reply'`;
+      await sql`
+        update enrollments set status = 'active', stopped_reason = null, updated_at = now()
+        where prospect_id = ${p.id} and status = 'stopped' and stopped_reason = 'replied'`;
+      reverted.push({
+        id: p.id,
+        business: p.business,
+        newStatus,
+        wasSnippet: (p.replySnippet || "").replace(/\s+/g, " ").slice(0, 90),
+      });
+    }
+  }
+  return { checked: suspects.length, kept, reverted };
 }
 
 async function downloadParsed(client, uid) {

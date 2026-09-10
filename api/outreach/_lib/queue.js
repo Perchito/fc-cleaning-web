@@ -4,7 +4,7 @@
 import { sql } from "./db.js";
 import { getProspect, nowISO } from "./prospects.js";
 import { render, validate, withFooter } from "./render.js";
-import { draftEmail } from "./ai.js";
+import { draftEmail, aiEnabled } from "./ai.js";
 import { sendMail } from "./mailer.js";
 import { suppressedSet } from "./suppression.js";
 
@@ -111,7 +111,7 @@ export async function buildQueue() {
       const variant = await pickVariant(step, c);
 
       let subject, body, aiGenerated = false;
-      if (step.mode === "ai") {
+      if (step.mode === "ai" && aiEnabled()) {
         if (aiBudget <= 0) {
           summary.skipped.push({ prospectId: e.prospect_id, reason: "AI draft budget — will retry next run" });
           continue;
@@ -119,10 +119,12 @@ export async function buildQueue() {
         aiBudget--;
         try {
           const d = await draftEmail(p, { aiGuidance: step.ai_guidance }, { round });
-          subject = d.subject;
-          body = withFooter(d.bodyCore, p);
-          aiGenerated = true;
-          summary.aiDrafts++;
+          if (d) {
+            subject = d.subject;
+            body = withFooter(d.bodyCore, p);
+            aiGenerated = true;
+            summary.aiDrafts++;
+          }
         } catch {
           // fall back to the template if the AI call fails
         }

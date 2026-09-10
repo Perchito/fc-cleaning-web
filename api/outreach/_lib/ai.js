@@ -8,6 +8,14 @@ import { hookFor } from "./render.js";
 const MODEL = "claude-sonnet-5";
 const API = "https://api.anthropic.com/v1/messages";
 
+/**
+ * Master switch. All AI calls are no-ops unless OUTREACH_AI="on" AND a key is
+ * set. Lets us ship the feature without spending any credits until Luis flips it.
+ */
+export function aiEnabled() {
+  return process.env.OUTREACH_AI === "on" && !!process.env.ANTHROPIC_API_KEY;
+}
+
 function keyOrThrow() {
   if (!process.env.ANTHROPIC_API_KEY) throw new Error("ANTHROPIC_API_KEY not configured");
   return process.env.ANTHROPIC_API_KEY;
@@ -72,6 +80,7 @@ quote within 24 hours. Sender: ${config.senderFirstName} (${config.senderTitle})
  * the standard footer.
  */
 export async function draftEmail(prospect, step, { round = 1 } = {}) {
+  if (!aiEnabled()) return null;
   const research = prospect.research
     ? `What we know about them (research):\n${JSON.stringify(prospect.research, null, 1)}`
     : `We have little research on them. Known: ${[
@@ -142,6 +151,7 @@ export const INTENTS = [
  * Returns { intent, confidence (0-1), summary, suggestedReply }.
  */
 export async function classifyReply({ prospect, replyText, lastSentSubject }) {
+  if (!aiEnabled()) return null;
   const system = `You triage replies to cold outreach for a small cleaning company and
 draft a short, friendly response the owner can send with one tweak. British English,
 plain text, no sign-off.`;
@@ -185,6 +195,7 @@ Return ONLY JSON: {"intent":"...","confidence":0.0-1.0,"summary":"one line","sug
  * object to store on the prospect, plus a fresh `hook`.
  */
 export async function enrichProspect(prospect) {
+  if (!aiEnabled()) return null;
   const tools = [
     { type: "web_search_20260209", name: "web_search", max_uses: 3 },
     { type: "web_fetch_20260209", name: "web_fetch", max_uses: 3 },
