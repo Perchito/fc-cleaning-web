@@ -10,6 +10,8 @@
 
 import { get } from "@vercel/blob";
 import { sql } from "./_lib/db.js";
+import { createCampaign } from "./_lib/campaigns.js";
+import { LEGACY_CAMPAIGN } from "./_lib/seed-campaign.js";
 
 const BOUNCE_OR_UNSUB = ["bounced", "unsubscribed"];
 
@@ -27,10 +29,18 @@ export default async function handler(req, res) {
     await sql`truncate prospects, campaigns, campaign_steps, enrollments, sends, events, suppression, meta cascade`;
   }
 
+  // Seed the "Legacy" campaign so past outreach shows up in analytics.
+  let legacy = (await sql`select id from campaigns where name = ${LEGACY_CAMPAIGN.name}`)[0];
+  if (!legacy) legacy = await createCampaign(LEGACY_CAMPAIGN);
+  const legacyId = legacy.id;
+  const legacySteps = await sql`
+    select id, step_index from campaign_steps where campaign_id = ${legacyId} order by step_index`;
+
   let np = 0,
     ns = 0,
     ne = 0,
-    nsup = 0;
+    nsup = 0,
+    nenr = 0;
 
   for (const p of prospects) {
     const initialCount = (p.sends || []).filter((s) => s.type === "initial").length;
@@ -57,16 +67,33 @@ export default async function handler(req, res) {
       on conflict (id) do nothing`;
     np++;
 
+    // one completed "Legacy" enrollment per already-contacted prospect
+    let enrId = null;
+    if ((p.sends || []).length) {
+      const rows = await sql`
+        insert into enrollments (campaign_id, prospect_id, status, current_step, enrolled_at)
+        values (${legacyId}, ${p.id}, 'completed', ${Math.min(2, p.sends.length)},
+                ${p.sends[0]?.sentAt || p.createdAt || new Date().toISOString()})
+        on conflict (campaign_id, prospect_id) do nothing
+        returning id`;
+      enrId =
+        rows[0]?.id ??
+        (await sql`select id from enrollments where campaign_id=${legacyId} and prospect_id=${p.id}`)[0]?.id;
+      if (rows[0]) nenr++;
+    }
+
     let idx = 0;
     for (const s of p.sends || []) {
       const stepIndex = s.type === "initial" ? 0 : idx > 0 ? idx : 1;
+      const stepId = legacySteps[Math.min(stepIndex, legacySteps.length - 1)]?.id ?? null;
       await sql`
-        insert into sends (prospect_id, step_index, subject, body, status, message_id, sent_at, queued_at)
-        values (${p.id}, ${stepIndex}, ${s.subject || ""}, '', 'sent', ${s.messageId || null},
-                ${s.sentAt}, ${s.sentAt})`;
+        insert into sends (prospect_id, campaign_id, enrollment_id, step_id, step_index,
+                           subject, body, status, message_id, sent_at, queued_at)
+        values (${p.id}, ${legacyId}, ${enrId}, ${stepId}, ${stepIndex},
+                ${s.subject || ""}, '', 'sent', ${s.messageId || null}, ${s.sentAt}, ${s.sentAt})`;
       await sql`
-        insert into events (prospect_id, type, subject, message_id, at)
-        values (${p.id}, 'sent', ${s.subject || ""}, ${s.messageId || null}, ${s.sentAt})`;
+        insert into events (prospect_id, campaign_id, enrollment_id, type, subject, message_id, at)
+        values (${p.id}, ${legacyId}, ${enrId}, 'sent', ${s.subject || ""}, ${s.messageId || null}, ${s.sentAt})`;
       ns++;
       ne++;
       idx++;
@@ -82,9 +109,9 @@ export default async function handler(req, res) {
 
     if (p.lastReplyAt || p.replySnippet) {
       await sql`
-        insert into events (prospect_id, type, at, snippet, message_id)
-        values (${p.id}, 'reply', ${p.lastReplyAt || p.updatedAt}, ${p.replySnippet || null},
-                ${p.replyMessageId || null})`;
+        insert into events (prospect_id, campaign_id, enrollment_id, type, at, snippet, message_id)
+        values (${p.id}, ${legacyId}, ${enrId}, 'reply', ${p.lastReplyAt || p.updatedAt},
+                ${p.replySnippet || null}, ${p.replyMessageId || null})`;
       ne++;
     }
     if (p.autoAckAt) {
@@ -119,9 +146,11 @@ export default async function handler(req, res) {
   return res.json({
     ok: true,
     prospects: np,
+    enrollments: nenr,
     sends: ns,
     events: ne,
     suppressed: nsup,
+    legacyCampaignId: legacyId,
     fromBlob: prospects.length,
   });
 }

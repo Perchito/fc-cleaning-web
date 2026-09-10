@@ -6,8 +6,10 @@
   "description": "FC Cleaning Company Ltd — commercial cleaning website (React + Vite + Tailwind + react-spring)",
   "scripts": {
     "dev": "vite",
-    "build": "vite build",
-    "preview": "vite preview"
+    "build": "vite build && vite build --config vite.ops.config.js",
+    "preview": "vite preview",
+    "build:ops": "vite build --config vite.ops.config.js",
+    "dev:ops": "vite --config vite.ops.config.js"
   },
   "dependencies": {
     "@neondatabase/serverless": "^1.1.0",
