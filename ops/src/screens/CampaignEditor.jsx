@@ -68,12 +68,22 @@ export default function CampaignEditor() {
   async function save() {
     if (!c.name.trim()) return toast("Give it a name", "error");
     setSaving(true);
+    const payload = {
+      name: c.name,
+      description: c.description,
+      status: c.status,
+      dailyCap: Number(c.dailyCap),
+      abMinSends: Number(c.abMinSends),
+      windowStart: String(c.windowStart).slice(0, 5),
+      windowEnd: String(c.windowEnd).slice(0, 5),
+      steps: c.steps,
+    };
     try {
       if (id) {
-        await patch(`/campaigns?id=${id}`, c);
+        await patch(`/campaigns?id=${id}`, payload);
         toast("Saved", "success");
       } else {
-        const r = await post("/campaigns", c);
+        const r = await post("/campaigns", payload);
         toast("Created", "success");
         nav(`/campaigns/${r.campaign.id}`, { replace: true });
       }

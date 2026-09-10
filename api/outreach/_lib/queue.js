@@ -43,10 +43,13 @@ async function pickVariant(step, campaign) {
 
 // ─────────────────────────────── build ───────────────────────────────
 
+const MAX_AI_DRAFTS_PER_BUILD = 12; // keep the cron under its time budget
+
 export async function buildQueue() {
   const today = londonToday();
   const campaigns = await sql`select * from campaigns where status = 'active'`;
   const summary = { day: today, queued: 0, aiDrafts: 0, byCampaign: {}, skipped: [] };
+  let aiBudget = MAX_AI_DRAFTS_PER_BUILD;
 
   for (const c of campaigns) {
     // how many more can go out for this campaign today
@@ -109,6 +112,11 @@ export async function buildQueue() {
 
       let subject, body, aiGenerated = false;
       if (step.mode === "ai") {
+        if (aiBudget <= 0) {
+          summary.skipped.push({ prospectId: e.prospect_id, reason: "AI draft budget — will retry next run" });
+          continue;
+        }
+        aiBudget--;
         try {
           const d = await draftEmail(p, { aiGuidance: step.ai_guidance }, { round });
           subject = d.subject;
