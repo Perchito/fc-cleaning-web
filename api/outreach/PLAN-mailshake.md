@@ -1,7 +1,8 @@
 # Outreach → "Mailshake-lite + AI" — implementation
 
-Status: **built on branch `outreach-sequences`, on a Vercel preview, not merged.**
-Started 2026-09-10.
+Status: **MERGED to `main` and live in production (2026-09-10).** Blob→Postgres
+migration run, replies audited. AI features are shipped but **OFF** — no Anthropic
+credits are spent until the Vercel env var `OUTREACH_AI=on` is set.
 
 Decisions locked in with Luis:
 - **Ambition:** Mailshake feature set **+ an AI layer** (per-prospect AI drafting,
@@ -33,14 +34,25 @@ Decisions locked in with Luis:
 | React dashboard (Queue/Campaigns/Prospects/Replies/Analytics) | `ops/`, `vite.ops.config.js` |
 | Blob → Postgres migration + Legacy seed | `_routes/migrate.js`, `_lib/seed-campaign.js` |
 
-## Cutover checklist (when Luis approves)
+## Cutover — DONE
 
-1. Merge `outreach-sequences` → `main` (auto-deploys to prod).
-2. `curl --location-trusted -u fc:$OPS_PASS "https://www.fccleaningcompany.com/api/outreach/migrate?confirm=reset"`
-   — copies the live blob into the prod Neon branch + seeds the Legacy campaign.
-3. Verify prod `/ops`.
-4. Follow-up commit: delete `_routes/migrate.js`, drop `@vercel/blob`.
-5. Rename the Vercel env var `OP_USER` → `OPS_USER` (currently a typo, falls back to `fc`).
+1. ✅ Merged `outreach-sequences` → `main` (`c98a2a2`).
+2. ✅ Ran `/api/outreach/migrate?confirm=reset` — 26 prospects, 38 sends, 48
+   events into prod Postgres; Legacy campaign seeded.
+3. ✅ Ran `/api/outreach/audit` — 8 "replied" re-checked: 3 genuine kept
+   (ancoats, half-dozen-other, dam), 5 false positives reverted to
+   `awaiting_reply` (they were cold pitches from @gmail.com senders matched by
+   the old same-domain heuristic).
+4. ✅ Verified prod `/ops` (React app) + API.
+
+### Still pending (non-urgent)
+- Delete `_routes/migrate.js` + drop `@vercel/blob` (kept for now as a re-run
+  path; old blob `outreach/prospects.json` kept as rollback).
+- Rename the Vercel env var `OP_USER` → `OPS_USER` (typo; falls back to `fc`).
+- **To turn on the AI layer:** set Vercel env `OUTREACH_AI=on` (Production) and
+  redeploy. Costs then apply per §8/effort.
+- Remove the `test-from-address-check` prospect (status `lost`) — a leftover
+  test row that migrated across.
 
 ---
 
