@@ -1,22 +1,65 @@
-// Daily job (Vercel Cron -> see vercel.json). Polls the inbox and emails the
-// digest. Vercel sends "Authorization: Bearer $CRON_SECRET" when CRON_SECRET
-// is set; we require it so the endpoint can't be triggered by anyone.
+// Daily operations job (Vercel Cron -> vercel.json, 08:00 UTC). One pass:
+//   1. poll the inbox — reconcile replies / bounces / auto-acks, classify replies
+//   2. build the day's send queue from due enrollments (templates + AI drafts)
+//   3. enrich a few un-researched prospects
+//   4. email the digest
+// Nothing is sent to prospects here — Luis approves the queued batch in /ops.
+// Self-authenticated: Vercel sends "Authorization: Bearer $CRON_SECRET".
 
-import { listProspects } from "./_lib/prospects.js";
+import { listProspects, updateResearch } from "./_lib/prospects.js";
 import { pollReplies } from "./_lib/imap.js";
+import { buildQueue } from "./_lib/queue.js";
+import { enrichProspect } from "./_lib/ai.js";
 import { maybeSendDigest } from "./_lib/digest.js";
 import { config as appConfig } from "./_lib/config.js";
+
+const ENRICH_PER_RUN = 3;
 
 export default async function handler(req, res) {
   const auth = req.headers.authorization || "";
   if (appConfig.cronSecret && auth !== `Bearer ${appConfig.cronSecret}`) {
     return res.status(401).json({ error: "unauthorized" });
   }
+
+  const out = { ok: true };
   try {
-    const result = await pollReplies({ prospects: await listProspects() });
-    const digest = await maybeSendDigest({ prospects: await listProspects() }, result);
-    return res.json({ ok: true, ...result, digest });
+    out.poll = await pollReplies({ prospects: await listProspects() });
   } catch (err) {
-    return res.status(502).json({ error: String(err.message || err) });
+    out.pollError = String(err.message || err);
   }
+
+  try {
+    out.queue = await buildQueue();
+  } catch (err) {
+    out.queueError = String(err.message || err);
+  }
+
+  try {
+    const need = (await listProspects()).filter(
+      (p) => !p.research && !["unsubscribed", "bounced", "lost"].includes(p.status),
+    );
+    const enriched = [];
+    for (const p of need.slice(0, ENRICH_PER_RUN)) {
+      try {
+        const r = await enrichProspect(p);
+        if (r) {
+          await updateResearch(p.id, r);
+          enriched.push(p.id);
+        }
+      } catch {
+        /* skip */
+      }
+    }
+    out.enriched = enriched;
+  } catch (err) {
+    out.enrichError = String(err.message || err);
+  }
+
+  try {
+    out.digest = await maybeSendDigest({ prospects: await listProspects() }, out.poll || { replies: [], bounces: [] });
+  } catch (err) {
+    out.digestError = String(err.message || err);
+  }
+
+  return res.json(out);
 }

@@ -52,6 +52,8 @@ function rowToProspect(r) {
     followUpIntervalDays: config.followUpIntervalDays,
     maxFollowUps: config.maxFollowUps,
     followUpsSent: r.followups_sent ?? 0,
+    research: r.research || null,
+    researchAt: iso(r.research_at),
     sends: (r.sends || []).map((s) => ({
       type: s.type,
       subject: s.subject,
@@ -110,6 +112,23 @@ export async function listProspects() {
 export async function getProspect(id) {
   const rows = await sql.query(`${SELECT} where p.id = $1`, [id]);
   return rows[0] ? rowToProspect(rows[0]) : null;
+}
+
+/** Full activity timeline for the prospect detail view. */
+export async function prospectTimeline(id) {
+  const events = await sql`
+    select type, intent, at, subject, snippet, message_id, handled, meta
+    from events where prospect_id = ${id} order by at desc`;
+  return events.map((e) => ({
+    type: e.type,
+    intent: e.intent,
+    at: iso(e.at),
+    subject: e.subject,
+    snippet: e.snippet,
+    messageId: e.message_id,
+    handled: e.handled,
+    meta: e.meta || {},
+  }));
 }
 
 const UPSERT_FIELDS = {
@@ -216,16 +235,39 @@ export async function recordSend(id, { subject, messageId, sentAt, isInitial }) 
   return getProspect(id);
 }
 
+export async function updateResearch(id, { research, hook }) {
+  await sql`
+    update prospects
+      set research = ${JSON.stringify(research)}::jsonb,
+          research_at = now(),
+          hook = coalesce(${hook ?? null}, hook),
+          updated_at = now()
+    where id = ${id}`;
+  return getProspect(id);
+}
+
 // --- inbound reconciliation (used by the IMAP poll) ---
-export async function applyReply(id, { at, snippet, messageId }) {
+export async function applyReply(id, { at, snippet, messageId, analysis, campaignId, enrollmentId }) {
   await sql`
     update prospects
       set status = 'replied', last_reply_at = ${at}, reply_snippet = ${snippet},
           reply_message_id = ${messageId}, updated_at = now()
     where id = ${id}`;
   await sql`
-    insert into events (prospect_id, type, at, snippet, message_id)
-    values (${id}, 'reply', ${at}, ${snippet}, ${messageId})`;
+    insert into events (prospect_id, campaign_id, enrollment_id, type, intent, at, snippet, message_id, meta)
+    values (
+      ${id}, ${campaignId ?? null}, ${enrollmentId ?? null}, 'reply',
+      ${analysis?.intent ?? null}, ${at}, ${snippet}, ${messageId},
+      ${JSON.stringify(
+        analysis
+          ? {
+              confidence: analysis.confidence,
+              summary: analysis.summary,
+              suggested_reply: analysis.suggestedReply,
+            }
+          : {},
+      )}::jsonb
+    )`;
 }
 
 export async function applyAutoAck(id, { at, snippet, messageId }) {

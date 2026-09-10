@@ -1,6 +1,24 @@
-import { listProspects, upsertProspect, getProspect, decorate, getMeta } from "./_lib/prospects.js";
+import {
+  listProspects,
+  upsertProspect,
+  getProspect,
+  decorate,
+  getMeta,
+  prospectTimeline,
+} from "./_lib/prospects.js";
+import { listEnrollmentsForProspect } from "./_lib/campaigns.js";
 
 export default async function handler(req, res) {
+  if (req.method === "GET" && req.query.id) {
+    const p = await getProspect(req.query.id);
+    if (!p) return res.status(404).json({ error: "not found" });
+    const [timeline, enrollments] = await Promise.all([
+      prospectTimeline(p.id),
+      listEnrollmentsForProspect(p.id),
+    ]);
+    return res.json({ prospect: decorate(p), timeline, enrollments });
+  }
+
   if (req.method === "GET") {
     const prospects = (await listProspects()).map(decorate).sort((a, b) => {
       const rank = (s) =>

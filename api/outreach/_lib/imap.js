@@ -14,6 +14,12 @@ import {
   applyAutoAck,
   applyBounce,
 } from "./prospects.js";
+import { stopEnrollmentsForProspect } from "./campaigns.js";
+import { suppress, looksLikeUnsubscribe } from "./suppression.js";
+import { classifyReply } from "./ai.js";
+import { sql } from "./db.js";
+
+const MAX_CLASSIFY_PER_POLL = 6;
 
 const TERMINAL = ["replied", "won", "lost", "unsubscribed"];
 
@@ -161,12 +167,49 @@ export async function pollReplies({ prospects, sinceDays = 45 } = {}) {
   // --- persist changes ---
   const byId = new Map(all.map((p) => [p.id, p]));
   const touched = new Set();
+  let classified = 0;
   for (const r of replies) {
     const p = byId.get(r.prospect.id);
     if (!p || TERMINAL.includes(p.status)) continue;
     if (p.replyMessageId && p.replyMessageId === r.messageId) continue;
     if (p.lastReplyAt && new Date(p.lastReplyAt) >= new Date(r.at)) continue;
-    await applyReply(p.id, { at: r.at, snippet: r.snippet, messageId: r.messageId });
+
+    const unsub = looksLikeUnsubscribe(r.snippet);
+
+    let analysis;
+    if (!unsub && classified < MAX_CLASSIFY_PER_POLL) {
+      classified++;
+      try {
+        analysis = await classifyReply({
+          prospect: p,
+          replyText: r.snippet,
+          lastSentSubject: lastSend(p)?.subject,
+        });
+      } catch {
+        /* best effort */
+      }
+    }
+    if (unsub) analysis = { intent: "unsubscribe", confidence: 0.9, summary: "asked to be removed", suggestedReply: "" };
+
+    // link the reply to the campaign/enrollment it belongs to, if any
+    const enr = (
+      await sql`select id, campaign_id from enrollments
+               where prospect_id = ${p.id} order by enrolled_at desc limit 1`
+    )[0];
+
+    await applyReply(p.id, {
+      at: r.at,
+      snippet: r.snippet,
+      messageId: r.messageId,
+      analysis,
+      campaignId: enr?.campaign_id,
+      enrollmentId: enr?.id,
+    });
+    await stopEnrollmentsForProspect(p.id, unsub ? "unsubscribed" : "replied");
+    if (unsub || analysis?.intent === "unsubscribe") {
+      await sql`update prospects set status = 'unsubscribed', updated_at = now() where id = ${p.id}`;
+      await suppress(p.email, "unsubscribe reply");
+    }
     p.status = "replied";
     p.lastReplyAt = r.at;
     p.replyMessageId = r.messageId;
@@ -183,6 +226,8 @@ export async function pollReplies({ prospects, sinceDays = 45 } = {}) {
     const p = byId.get(b.prospect.id);
     if (!p || p.status === "replied" || TERMINAL.includes(p.status)) continue;
     await applyBounce(p.id, { reason: b.reason });
+    await stopEnrollmentsForProspect(p.id, "bounced");
+    await suppress(p.email, "hard bounce");
     p.status = "bounced";
     touched.add(p.id);
   }
