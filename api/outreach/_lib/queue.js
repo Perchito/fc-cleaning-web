@@ -185,13 +185,24 @@ export async function buildQueue() {
 
 export async function getQueue({ day } = {}) {
   const d = day || londonToday();
-  const rows = await sql`
-    select s.*, p.business, p.email, p.contact_name, c.name as campaign_name
-    from sends s
-    join prospects p on p.id = s.prospect_id
-    left join campaigns c on c.id = s.campaign_id
-    where s.queued_for = ${d} and s.status in ('queued','approved','failed')
-    order by c.name, s.queued_at`;
+  // With no explicit `day`, show every pending item regardless of which day
+  // it was queued for — a draft left unreviewed past midnight (London) must
+  // stay visible instead of silently dropping out of the default view.
+  const rows = day
+    ? await sql`
+        select s.*, p.business, p.email, p.contact_name, c.name as campaign_name
+        from sends s
+        join prospects p on p.id = s.prospect_id
+        left join campaigns c on c.id = s.campaign_id
+        where s.queued_for = ${day} and s.status in ('queued','approved','failed')
+        order by c.name, s.queued_at`
+    : await sql`
+        select s.*, p.business, p.email, p.contact_name, c.name as campaign_name
+        from sends s
+        join prospects p on p.id = s.prospect_id
+        left join campaigns c on c.id = s.campaign_id
+        where s.status in ('queued','approved','failed')
+        order by c.name, s.queued_at`;
 
   const items = rows.map((r) => ({
     id: r.id,
@@ -246,10 +257,11 @@ async function advancePastStep(sendId) {
 
 export async function queueAction({ action, ids = [], patch = {} }) {
   if (action === "approve" || action === "approve_all") {
-    const day = londonToday();
     if (action === "approve_all") {
+      // Matches getQueue's default (undated) view: approve every pending
+      // queued item, not just ones queued for today.
       await sql`update sends set status='approved', approved_at=now()
-               where queued_for=${day} and status='queued' and ai_pending = false
+               where status='queued' and ai_pending = false
                  and not exists (select 1 from suppression x where x.email =
                    (select email from prospects p where p.id = sends.prospect_id))`;
     } else {
