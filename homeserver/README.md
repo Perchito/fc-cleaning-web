@@ -78,7 +78,7 @@ HOME_STORAGE_PROJECT=wedding-gallery
 HOME_STORAGE_KEY=hs_…
 ```
 
-**Database:** a normal PostgreSQL 17 database. Any driver or ORM works
+**Database:** a normal PostgreSQL database (16 or newer; 18 on Ubuntu 26.04). Any driver or ORM works
 (`pg`, Prisma, Drizzle, psycopg, …). Each project has its own login and can't
 see the other projects' databases or the outreach database.
 

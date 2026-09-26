@@ -56,8 +56,10 @@ apt-get install -y -qq curl git ca-certificates gnupg openssl gzip >/dev/null
 
 step "Node.js"
 node_major() { node -p 'process.versions.node.split(".")[0]' 2>/dev/null || echo 0; }
-# major version Ubuntu's own repo offers (e.g. "22.14.0+dfsg-1" → 22), 0 if none
-apt_major() { apt-cache policy "$1" 2>/dev/null | awk '/Candidate:/ { split($2, v, /[.:+~-]/); print (v[1] ~ /^[0-9]+$/ ? v[1] : 0); exit }'; }
+# major version Ubuntu's own repo offers (e.g. "22.14.0+dfsg-1" → 22, "18+290" → 18), 0 if none.
+# awk reads to the end on purpose: an early `exit` makes apt-cache die of SIGPIPE,
+# which pipefail + set -e turn into a silent abort of the whole installer.
+apt_major() { apt-cache policy "$1" 2>/dev/null | awk '/Candidate:/ && !n++ { split($2, v, /[.:+~-]/); m = (v[1] ~ /^[0-9]+$/ ? v[1] : 0) } END { print m + 0 }'; }
 if [ "$(node_major)" -lt 20 ]; then
   NODE_CANDIDATE="$(apt_major nodejs)"
   if [ "${NODE_CANDIDATE:-0}" -ge 20 ]; then
@@ -73,7 +75,7 @@ step "PostgreSQL"
 if ! command -v pg_dump >/dev/null || ! systemctl list-unit-files postgresql.service >/dev/null 2>&1; then
   # Ubuntu's own `postgresql` is 14 on 22.04, 16 on 24.04, newer after that. Use it
   # when it is 16+; otherwise add the PostgreSQL project's repo for 17.
-  PG_CANDIDATE="$(apt-cache policy postgresql 2>/dev/null | awk '/Candidate:/ { split($2, v, /[+~.-]/); print (v[1] ~ /^[0-9]+$/ ? v[1] : 0); exit }')"
+  PG_CANDIDATE="$(apt_major postgresql)"
   if [ "${PG_CANDIDATE:-0}" -ge 16 ]; then
     apt-get install -y -qq postgresql >/dev/null
   else
@@ -153,12 +155,12 @@ ENV_FILE="$ENV_FILE" load_env
 
 step "Database"
 DB_PASS_FROM_URL="$(node -e 'console.log(decodeURIComponent(new URL(process.argv[1]).password))' "$DATABASE_URL")"
-if ! sudo -u postgres psql -tAc "select 1 from pg_roles where rolname='$DB_USER'" | grep -q 1; then
+if [ "$(sudo -u postgres psql -tAc "select 1 from pg_roles where rolname='$DB_USER'")" != 1 ]; then
   sudo -u postgres psql -qc "create role $DB_USER login"
 fi
 # keep the role's password in sync with DATABASE_URL (covers a re-created env file)
 sudo -u postgres psql -qc "alter role $DB_USER with login password '${DB_PASS_FROM_URL//\'/\'\'}'"
-if ! sudo -u postgres psql -tAc "select 1 from pg_database where datname='$DB_NAME'" | grep -q 1; then
+if [ "$(sudo -u postgres psql -tAc "select 1 from pg_database where datname='$DB_NAME'")" != 1 ]; then
   sudo -u postgres createdb -O "$DB_USER" "$DB_NAME"
 fi
 PGOPTIONS="-c client_min_messages=warning" psql -v ON_ERROR_STOP=1 -q "$DATABASE_URL" -f "$REPO/api/outreach/_lib/schema.sql" >/dev/null
@@ -351,7 +353,7 @@ if [ "$WITH_TAILSCALE" = 1 ] && ! command -v tailscale >/dev/null; then
   echo "run: sudo tailscale up"
 fi
 
-if command -v ufw >/dev/null && ufw status | grep -q "Status: active"; then
+if command -v ufw >/dev/null && [[ "$(ufw status 2>/dev/null)" == *"Status: active"* ]]; then
   UFW_NOTE="ufw is active — allow LAN access with: sudo ufw allow from 192.168.0.0/16 to any port 4517,8090,9100,5432 proto tcp"
 fi
 
