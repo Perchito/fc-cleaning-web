@@ -1,7 +1,10 @@
 #!/usr/bin/env bash
-# Dump the outreach database to $STORAGE_DIR/backups/<timestamp>.sql.gz and
-# prune backups beyond $BACKUP_KEEP (default 14). Run nightly by the
-# fc-outreach-backup.timer, or on demand from the control panel.
+# Dump databases to $STORAGE_DIR/backups/ as gzipped SQL, keeping the newest
+# $BACKUP_KEEP (default 14) of each. Run nightly by fc-outreach-backup.timer,
+# or on demand from the control panel.
+#   backup.sh                   outreach database + every project database
+#   backup.sh outreach          only the outreach database
+#   backup.sh project <slug>    only that project's database
 set -euo pipefail
 # shellcheck source=lib.sh
 . "$(dirname "${BASH_SOURCE[0]}")/lib.sh"
@@ -10,12 +13,27 @@ load_env
 : "${DATABASE_URL:?DATABASE_URL not set}"
 DIR="${STORAGE_DIR:-/srv/fc-outreach/storage}/backups"
 KEEP="${BACKUP_KEEP:-14}"
+STAMP="$(date +%Y%m%d-%H%M%S)"
 mkdir -p "$DIR"
 
-OUT="$DIR/fc-outreach-$(date +%Y%m%d-%H%M%S).sql.gz"
-pg_dump --no-owner --no-acl --clean --if-exists "$DATABASE_URL" | gzip -9 > "$OUT.part"
-mv "$OUT.part" "$OUT"
-echo "backup written: $OUT ($(du -h "$OUT" | cut -f1))"
+dump() { # <url> <file prefix>
+  local out="$DIR/$2-$STAMP.sql.gz"
+  pg_dump --no-owner --no-acl --clean --if-exists "$1" | gzip -9 > "$out.part"
+  mv "$out.part" "$out"
+  echo "backup written: $out ($(du -h "$out" | cut -f1))"
+  # keep the newest $KEEP for this prefix (timestamps sort lexically)
+  find "$DIR" -maxdepth 1 -name "$2-[0-9]*-[0-9]*.sql.gz" -printf '%f\n' | sort -r | tail -n +"$((KEEP + 1))" \
+    | while read -r f; do rm -f -- "$DIR/$f"; done
+}
 
-# keep the newest $KEEP
-ls -1t "$DIR"/fc-outreach-*.sql.gz 2>/dev/null | tail -n +"$((KEEP + 1))" | xargs -r rm -f --
+target="${1:-all}"
+if [ "$target" = all ] || [ "$target" = outreach ]; then
+  dump "$DATABASE_URL" fc-outreach
+fi
+if [ "$target" = all ] || [ "$target" = project ]; then
+  while read -r slug url; do
+    [ -n "$slug" ] || continue
+    if [ "$target" = project ] && [ "$slug" != "${2:-}" ]; then continue; fi
+    dump "$url" "project-$slug"
+  done < <(project_dbs)
+fi

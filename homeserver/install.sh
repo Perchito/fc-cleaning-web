@@ -7,23 +7,29 @@
 # Installs and wires up, all on this machine:
 #   - Node.js 22 (if missing) and PostgreSQL 17 (if missing)
 #   - database `fc_outreach` + schema (api/outreach/_lib/schema.sql)
-#   - storage at /srv/fc-outreach/storage (files/ + backups/)
+#   - storage at /srv/fc-outreach/storage (files/ + backups/ + projects/)
 #   - systemd services: fc-outreach-app (dashboard + API, :4517),
 #     fc-outreach-worker (AI via Claude Code), fc-panel (control panel, :8090),
-#     fc-outreach-backup.timer (nightly pg_dump)
+#     fc-storage (storage API for project buckets, :9100),
+#     fc-outreach-backup.timer (nightly pg_dump of every database)
+#   - a Postgres admin role the panel uses to create a database per project
 #   - /etc/fc-outreach/outreach.env with generated passwords/secrets
 # Safe to re-run: existing database, env file and data are kept.
 #
 # Options:  --user NAME   run services as NAME (default: the user who ran sudo)
 #           --tailscale   also install Tailscale for private remote access
+#           --db-network  let project databases accept connections from your
+#                         LAN / Tailscale (password auth, project roles only)
 set -euo pipefail
 
 APP_USER="${SUDO_USER:-}"
 WITH_TAILSCALE=0
+DB_NETWORK_FLAG=0
 while [ $# -gt 0 ]; do
   case "$1" in
     --user) APP_USER="$2"; shift 2 ;;
     --tailscale) WITH_TAILSCALE=1; shift ;;
+    --db-network) DB_NETWORK_FLAG=1; shift ;;
     *) echo "unknown option: $1" >&2; exit 2 ;;
   esac
 done
@@ -117,6 +123,16 @@ EOF
 else
   echo "kept existing file"
 fi
+# settings added after the first release — appended to older env files on re-run
+ensure_env() { grep -q "^$1=" "$ENV_FILE" || echo "$1=$2" >> "$ENV_FILE"; }
+ensure_env PG_ADMIN_URL "postgresql://fc_admin:$(rand 18)@127.0.0.1:5432/postgres"
+ensure_env PROJECTS_FILE "$ETC/projects.json"
+ensure_env STORAGE_API_PORT 9100
+ensure_env STORAGE_PUBLIC_URL ""
+ensure_env STORAGE_MAX_UPLOAD_MB 5120
+ensure_env DB_NETWORK off
+ensure_env DB_PUBLIC_HOST ""
+if [ "$DB_NETWORK_FLAG" = 1 ]; then sed -i 's/^DB_NETWORK=.*/DB_NETWORK=on/' "$ENV_FILE"; fi
 . "$REPO/homeserver/scripts/lib.sh"
 ENV_FILE="$ENV_FILE" load_env
 
@@ -131,10 +147,49 @@ if ! sudo -u postgres psql -tAc "select 1 from pg_database where datname='$DB_NA
   sudo -u postgres createdb -O "$DB_USER" "$DB_NAME"
 fi
 PGOPTIONS="-c client_min_messages=warning" psql -v ON_ERROR_STOP=1 -q "$DATABASE_URL" -f "$REPO/api/outreach/_lib/schema.sql" >/dev/null
+sudo -u postgres psql -qc "revoke all on database $DB_NAME from public"
 echo "database $DB_NAME ready ($(psql -tAc "select count(*) from information_schema.tables where table_schema='public'" "$DATABASE_URL") tables)"
 
+step "Project databases (admin role)"
+# fc_admin creates/drops a role + database per project from the panel. It is not
+# a superuser; hs_projects groups the project roles so pg_hba can allow only them
+# over the network.
+ADMIN_PASS="$(node -e 'console.log(decodeURIComponent(new URL(process.argv[1]).password))' "$PG_ADMIN_URL")"
+sudo -u postgres psql -q -v ON_ERROR_STOP=1 <<SQL
+do \$\$ begin
+  if not exists (select 1 from pg_roles where rolname = 'fc_admin') then create role fc_admin login createdb createrole; end if;
+  if not exists (select 1 from pg_roles where rolname = 'hs_projects') then create role hs_projects nologin; end if;
+end \$\$;
+alter role fc_admin with login createdb createrole password '${ADMIN_PASS//\'/\'\'}';
+grant hs_projects to fc_admin with admin option;
+SQL
+[ -f "$PROJECTS_FILE" ] || { echo '{ "projects": {} }' > "$PROJECTS_FILE"; }
+chown "$APP_USER:$APP_USER" "$PROJECTS_FILE"; chmod 600 "$PROJECTS_FILE"
+echo "ok"
+
+if [ "$DB_NETWORK" = on ]; then
+  step "Database network access (LAN + Tailscale)"
+  HBA="$(sudo -u postgres psql -tAc 'show hba_file')"
+  if ! grep -q "fc-homeserver" "$HBA"; then
+    cat >> "$HBA" <<HBAEOF
+# fc-homeserver: project databases from LAN / Tailscale (project roles only).
+# fc_admin manages the project roles, which makes it an indirect member of
+# hs_projects — reject it explicitly so it stays local-only.
+host  all  fc_admin      0.0.0.0/0       reject
+host  all  fc_admin      ::/0            reject
+host  all  +hs_projects  10.0.0.0/8      scram-sha-256
+host  all  +hs_projects  172.16.0.0/12   scram-sha-256
+host  all  +hs_projects  192.168.0.0/16  scram-sha-256
+host  all  +hs_projects  100.64.0.0/10   scram-sha-256
+HBAEOF
+  fi
+  sudo -u postgres psql -qc "alter system set listen_addresses = '*'"
+  systemctl restart postgresql
+  echo "project databases reachable on port 5432 from private networks"
+fi
+
 step "Storage ($STORAGE)"
-install -d -m 750 -o "$APP_USER" -g "$APP_USER" /srv/fc-outreach "$STORAGE" "$STORAGE/files" "$STORAGE/backups"
+install -d -m 750 -o "$APP_USER" -g "$APP_USER" /srv/fc-outreach "$STORAGE" "$STORAGE/files" "$STORAGE/backups" "$STORAGE/projects"
 echo "ok"
 
 step "App dependencies + dashboard build"
@@ -204,6 +259,24 @@ RestartSec=3
 WantedBy=multi-user.target
 EOF
 
+cat > /etc/systemd/system/fc-storage.service <<EOF
+[Unit]
+Description=Home Server storage API (project buckets)
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+User=$APP_USER
+WorkingDirectory=$REPO
+EnvironmentFile=$ENV_FILE
+ExecStart=$NODE_BIN $REPO/homeserver/storage-api/server.mjs
+Restart=always
+RestartSec=3
+
+[Install]
+WantedBy=multi-user.target
+EOF
+
 cat > /etc/systemd/system/fc-outreach-backup.service <<EOF
 [Unit]
 Description=FC Outreach database backup
@@ -231,7 +304,7 @@ step "Permissions for the control panel"
 SYSTEMCTL="$(command -v systemctl)"
 {
   echo "# Lets the FC control panel (running as $APP_USER) manage its own services only."
-  for u in fc-outreach-app fc-outreach-worker fc-panel postgresql fc-outreach-backup.timer cloudflared tailscaled; do
+  for u in fc-outreach-app fc-outreach-worker fc-panel fc-storage postgresql fc-outreach-backup.timer cloudflared tailscaled; do
     for a in start stop restart enable disable; do
       echo "$APP_USER ALL=(root) NOPASSWD: $SYSTEMCTL $a $u"
     done
@@ -247,9 +320,9 @@ mv /etc/sudoers.d/fc-outreach.tmp /etc/sudoers.d/fc-outreach
 echo "ok"
 
 systemctl daemon-reload
-systemctl enable --now fc-outreach-app fc-panel fc-outreach-backup.timer >/dev/null
+systemctl enable --now fc-outreach-app fc-panel fc-storage fc-outreach-backup.timer >/dev/null
 systemctl enable fc-outreach-worker >/dev/null
-systemctl restart fc-outreach-app fc-panel
+systemctl restart fc-outreach-app fc-panel fc-storage
 if as_user env PATH="$USER_PATH" bash -c 'command -v claude' >/dev/null; then
   systemctl restart fc-outreach-worker
   WORKER_NOTE="running"
@@ -264,7 +337,7 @@ if [ "$WITH_TAILSCALE" = 1 ] && ! command -v tailscale >/dev/null; then
 fi
 
 if command -v ufw >/dev/null && ufw status | grep -q "Status: active"; then
-  UFW_NOTE="ufw is active — allow LAN access with: sudo ufw allow from 192.168.0.0/16 to any port 4517,8090 proto tcp"
+  UFW_NOTE="ufw is active — allow LAN access with: sudo ufw allow from 192.168.0.0/16 to any port 4517,8090,9100,5432 proto tcp"
 fi
 
 IP="$(hostname -I | awk '{print $1}')"
@@ -279,6 +352,8 @@ cat <<EOF
   Outreach (/ops)  http://$IP:$PORT/ops
                    user: $OPS_USER   password: $OPS_PASS
   AI worker        $WORKER_NOTE
+  Storage API      http://$IP:$STORAGE_API_PORT/v1/<project>/…
+  Project DBs      $([ "$DB_NETWORK" = on ] && echo "$IP:5432 (LAN / Tailscale)" || echo "this machine only (re-run with --db-network to open to your LAN)")
 
   Settings file    $ENV_FILE   (also editable in the panel)
   Storage          $STORAGE
@@ -286,5 +361,6 @@ cat <<EOF
 
   Next: open the panel → Settings → fill in ICLOUD_SMTP_USER / ICLOUD_SMTP_PASS,
   then Database → "Move data from Neon" to bring your existing prospects over.
+  For your other repos: Projects → New project (a database + storage bucket each).
 ────────────────────────────────────────────────────────────
 EOF

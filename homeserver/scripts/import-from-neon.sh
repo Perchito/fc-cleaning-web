@@ -14,7 +14,7 @@ SRC="${1:-${NEON_URL:-}}"
 HERE="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 
 echo "backing up local data first…"
-BACKUP_KEEP=1000 "$HERE/backup.sh"
+BACKUP_KEEP=1000 "$HERE/backup.sh" outreach
 
 sudo -n systemctl stop fc-outreach-app fc-outreach-worker 2>/dev/null || true
 trap 'sudo -n systemctl start fc-outreach-app fc-outreach-worker 2>/dev/null || true' EXIT

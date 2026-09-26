@@ -13,3 +13,14 @@ load_env() {
     export "$k=$v"
   done < "$file"
 }
+
+# Print "<slug> <database url>" for every project that has a database.
+project_dbs() {
+  local file="${PROJECTS_FILE:-/etc/fc-outreach/projects.json}"
+  [ -r "$file" ] || return 0
+  node -e '
+    const d = JSON.parse(require("fs").readFileSync(process.argv[1], "utf8"));
+    for (const [slug, p] of Object.entries(d.projects || {}))
+      if (p.db) console.log(slug, `postgresql://${p.db.user}:${p.db.password}@127.0.0.1:5432/${p.db.name}`);
+  ' "$file"
+}

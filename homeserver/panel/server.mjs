@@ -1,9 +1,9 @@
 #!/usr/bin/env node
 // FC Home Server — control panel.
-// A small web GUI (no dependencies beyond `pg` from the repo) for running the
-// outreach stack on the Ubuntu box: service status + start/stop/restart, logs,
-// host health, database stats, backups/restore, Neon import, a file store,
-// settings (the env file) and "update from GitHub".
+// A small web GUI (no dependencies beyond `pg` from the repo) for the Ubuntu
+// box: service status + start/stop/restart, logs, host health, the outreach
+// database (stats, backups/restore, Neon import), projects (a database +
+// storage bucket per repo), a file store, settings and "update from GitHub".
 //
 // Runs as the app user (see install.sh). Service control goes through
 // `sudo -n systemctl …`, which install.sh allows for the fc-* units only.
@@ -18,6 +18,7 @@ import { mkdir, readdir, readFile, rename, rm, stat, writeFile } from "node:fs/p
 import { basename, dirname, extname, join, resolve, sep } from "node:path";
 import { pipeline } from "node:stream/promises";
 import { fileURLToPath } from "node:url";
+import { dbIdent, loadProjects, newKey, newPassword, saveProjects, SLUG_RE } from "../lib/projects.mjs";
 
 const exec = promisify(execFile);
 const HERE = dirname(fileURLToPath(import.meta.url));
@@ -32,14 +33,18 @@ const PASS = process.env.PANEL_PASS || "";
 const STORAGE = resolve(process.env.STORAGE_DIR || "/srv/fc-outreach/storage");
 const FILES = join(STORAGE, "files");
 const BACKUPS = join(STORAGE, "backups");
+const PROJECTS_DIR = join(STORAGE, "projects");
+const TRASH = join(STORAGE, "trash");
 const APP_PORT = Number(process.env.PORT || 4517);
+const STORAGE_API_PORT = Number(process.env.STORAGE_API_PORT || 9100);
 
 // Units the panel may control. `optional` ones are shown only if installed.
 const UNITS = [
   { unit: "fc-outreach-app", label: "Outreach app", desc: "Dashboard (/ops) + API + daily jobs" },
   { unit: "fc-outreach-worker", label: "AI worker", desc: "Runs AI jobs through Claude Code" },
-  { unit: "postgresql", label: "PostgreSQL", desc: "Outreach database" },
-  { unit: "fc-outreach-backup.timer", label: "Nightly backup", desc: "pg_dump to storage at 03:00" },
+  { unit: "postgresql", label: "PostgreSQL", desc: "Databases for outreach + projects" },
+  { unit: "fc-storage", label: "Storage API", desc: `File storage for projects (:${process.env.STORAGE_API_PORT || 9100})` },
+  { unit: "fc-outreach-backup.timer", label: "Nightly backup", desc: "pg_dump of every database at 03:00" },
   { unit: "cloudflared", label: "Cloudflare Tunnel", desc: "Public HTTPS access", optional: true },
   { unit: "tailscaled", label: "Tailscale", desc: "Private remote access", optional: true },
 ];
@@ -125,16 +130,30 @@ function envValue(v) {
   return v;
 }
 
-async function dbClient() {
+async function readEnv() {
   const env = {};
   for (const line of await parseEnvFile()) {
     const m = line.match(/^\s*([A-Z0-9_]+)\s*=(.*)$/);
     if (m) env[m[1]] = envValue(m[2]);
   }
+  return env;
+}
+
+async function pgConnect(url) {
   const { default: pg } = await import("pg");
-  const client = new pg.Client({ connectionString: env.DATABASE_URL || process.env.DATABASE_URL });
+  const client = new pg.Client({ connectionString: url });
   await client.connect();
   return client;
+}
+
+async function dbClient() {
+  return pgConnect((await readEnv()).DATABASE_URL || process.env.DATABASE_URL);
+}
+
+async function adminClient() {
+  const url = (await readEnv()).PG_ADMIN_URL;
+  if (!url) throw Object.assign(new Error("PG_ADMIN_URL is not set — re-run homeserver/install.sh"), { status: 500 });
+  return pgConnect(url);
 }
 
 // ─────────────────────────────── data sources ───────────────────────────────
@@ -202,6 +221,7 @@ async function overview() {
     disks,
     services: services.filter((s) => s.installed || !s.optional),
     app: { port: APP_PORT, health },
+    projects: Object.keys((await loadProjects()).projects).length,
     opsUrl: process.env.OPS_PUBLIC_URL || null,
   };
 }
@@ -239,23 +259,40 @@ async function listBackups() {
   for (const name of await readdir(BACKUPS)) {
     if (!name.endsWith(".sql.gz")) continue;
     const s = await stat(join(BACKUPS, name));
-    out.push({ name, bytes: s.size, at: s.mtime });
+    const project = (name.match(/^project-(.+)-\d{8}-\d{6}(?:-final)?\.sql\.gz$/) || [])[1] || null;
+    out.push({ name, bytes: s.size, at: s.mtime, project });
   }
   return out.sort((a, b) => b.at - a.at);
 }
 
-async function listFiles(rel) {
-  await mkdir(FILES, { recursive: true });
-  const dir = inside(FILES, rel);
+// Storage locations the file browser can open: shared files, or a project's bucket.
+async function rootDir(root) {
+  if (!root || root === "files") return FILES;
+  const slug = String(root).replace(/^project:/, "");
+  const p = (await loadProjects()).projects[slug];
+  if (!p || !p.storage) throw Object.assign(new Error("unknown storage location"), { status: 400 });
+  return join(PROJECTS_DIR, slug);
+}
+
+async function listFiles(root, rel) {
+  const base = await rootDir(root);
+  await mkdir(base, { recursive: true });
+  const dir = inside(base, rel);
   const entries = [];
   for (const d of await readdir(dir, { withFileTypes: true })) {
     const s = await stat(join(dir, d.name)).catch(() => null);
-    if (!s) continue;
+    if (!s || d.name.endsWith(".part")) continue;
     entries.push({ name: d.name, dir: d.isDirectory(), bytes: s.size, at: s.mtime });
   }
   entries.sort((a, b) => b.dir - a.dir || a.name.localeCompare(b.name));
   const total = await sh("du", ["-sb", STORAGE]);
-  return { path: dir.slice(FILES.length) || "/", entries, storageBytes: total.ok ? Number(total.out.split(/\s/)[0]) : null };
+  const { projects } = await loadProjects();
+  const locations = [{ id: "files", label: "Shared files" }].concat(
+    Object.entries(projects)
+      .filter(([, p]) => p.storage)
+      .map(([slug, p]) => ({ id: `project:${slug}`, label: `${p.name} (bucket)` })),
+  );
+  return { path: dir.slice(base.length) || "/", entries, locations, storageBytes: total.ok ? Number(total.out.split(/\s/)[0]) : null };
 }
 
 async function settings() {
@@ -292,11 +329,7 @@ async function saveSettings(changes) {
 }
 
 async function runDaily(name) {
-  const env = {};
-  for (const line of await parseEnvFile()) {
-    const m = line.match(/^\s*([A-Z0-9_]+)\s*=(.*)$/);
-    if (m) env[m[1]] = envValue(m[2]);
-  }
+  const env = await readEnv();
   // cron/discover authenticate with CRON_SECRET; poll sits behind the Basic-auth gate
   const authorization =
     name === "poll"
@@ -315,6 +348,176 @@ async function runDaily(name) {
     /* keep raw */
   }
   return { ok: r.ok, out: `HTTP ${r.status}\n${body}` };
+}
+
+// ─────────────────────────────── projects (other repos) ───────────────────────────────
+const httpError = (status, message) => Object.assign(new Error(message), { status });
+const lanIp = () =>
+  Object.values(os.networkInterfaces())
+    .flat()
+    .find((n) => n && n.family === "IPv4" && !n.internal)?.address || "127.0.0.1";
+
+async function endpoints() {
+  const env = await readEnv();
+  const dbHost = env.DB_PUBLIC_HOST || (env.DB_NETWORK === "on" ? lanIp() : "127.0.0.1");
+  const storageUrl = (env.STORAGE_PUBLIC_URL || `http://${lanIp()}:${STORAGE_API_PORT}`).replace(/\/$/, "");
+  return { dbHost, dbNetwork: env.DB_NETWORK === "on", storageUrl };
+}
+
+async function dirBytes(dir) {
+  const r = await sh("du", ["-sb", dir]);
+  return r.ok ? Number(r.out.split(/\s/)[0]) : 0;
+}
+
+async function listProjects() {
+  const { projects } = await loadProjects();
+  const slugs = Object.keys(projects).sort();
+  const sizes = {};
+  const dbs = slugs.filter((s) => projects[s].db).map((s) => projects[s].db.name);
+  if (dbs.length) {
+    try {
+      const c = await adminClient();
+      try {
+        const { rows } = await c.query(
+          "select datname, pg_database_size(datname)::bigint as bytes from pg_database where datname = any($1)",
+          [dbs],
+        );
+        for (const row of rows) sizes[row.datname] = Number(row.bytes);
+      } finally {
+        await c.end();
+      }
+    } catch {
+      /* sizes are best effort */
+    }
+  }
+  const list = [];
+  for (const slug of slugs) {
+    const pr = projects[slug];
+    list.push({
+      slug,
+      name: pr.name,
+      createdAt: pr.createdAt,
+      publicRead: !!pr.publicRead,
+      storage: !!pr.storage,
+      db: pr.db ? { name: pr.db.name } : null,
+      dbBytes: pr.db ? (sizes[pr.db.name] ?? null) : null,
+      storageBytes: pr.storage ? await dirBytes(join(PROJECTS_DIR, slug)) : null,
+    });
+  }
+  return { projects: list, ...(await endpoints()) };
+}
+
+async function projectDetail(slug) {
+  const pr = (await loadProjects()).projects[slug];
+  if (!pr) throw httpError(404, "no such project");
+  const ep = await endpoints();
+  const dbUrl = pr.db ? `postgresql://${pr.db.user}:${pr.db.password}@${ep.dbHost}:5432/${pr.db.name}` : null;
+  const lines = [];
+  if (dbUrl) lines.push(`DATABASE_URL=${dbUrl}`);
+  if (pr.storage) lines.push(`HOME_STORAGE_URL=${ep.storageUrl}`, `HOME_STORAGE_PROJECT=${slug}`, `HOME_STORAGE_KEY=${pr.key}`);
+  return {
+    slug,
+    name: pr.name,
+    createdAt: pr.createdAt,
+    publicRead: !!pr.publicRead,
+    storage: !!pr.storage,
+    key: pr.storage ? pr.key : null,
+    db: pr.db ? { name: pr.db.name, user: pr.db.user, url: dbUrl } : null,
+    storageEndpoint: pr.storage ? `${ep.storageUrl}/v1/${slug}` : null,
+    env: lines.join("\n"),
+    ...ep,
+  };
+}
+
+async function createProject({ name, slug, db = true, storage = true, publicRead = false }) {
+  name = String(name || "").trim();
+  slug = String(slug || name).toLowerCase().trim().replace(/[^a-z0-9]+/g, "-").replace(/^-+|-+$/g, "");
+  if (!name) throw httpError(400, "give the project a name");
+  if (!SLUG_RE.test(slug)) throw httpError(400, "id must be 3–32 characters: a–z, 0–9 and -, starting with a letter");
+  if (!db && !storage) throw httpError(400, "pick a database, storage or both");
+  const data = await loadProjects();
+  if (data.projects[slug]) throw httpError(409, `a project called “${slug}” already exists`);
+
+  const entry = { name, createdAt: new Date().toISOString(), key: newKey(), publicRead: !!publicRead, storage: !!storage, db: null };
+  if (db) {
+    const ident = dbIdent(slug); // validated slug → safe identifier
+    const password = newPassword(); // hex → safe literal
+    const c = await adminClient();
+    try {
+      const exists = await c.query("select 1 from pg_roles where rolname = $1 union all select 1 from pg_database where datname = $1", [ident]);
+      if (exists.rowCount) throw httpError(409, `database or role ${ident} already exists`);
+      await c.query(`create role "${ident}" login password '${password}'`);
+      await c.query(`grant "${ident}" to current_user`); // lets the admin role own-and-manage it
+      await c.query(`grant hs_projects to "${ident}"`); // pg_hba lets this group in over the network
+      await c.query(`create database "${ident}" owner "${ident}"`);
+      await c.query(`revoke all on database "${ident}" from public`);
+    } finally {
+      await c.end();
+    }
+    entry.db = { name: ident, user: ident, password };
+  }
+  if (storage) await mkdir(join(PROJECTS_DIR, slug), { recursive: true });
+  data.projects[slug] = entry;
+  await saveProjects(data);
+  return projectDetail(slug);
+}
+
+async function updateProject(slug, { publicRead, regenerateKey, resetDbPassword }) {
+  const data = await loadProjects();
+  const pr = data.projects[slug];
+  if (!pr) throw httpError(404, "no such project");
+  if (typeof publicRead === "boolean") pr.publicRead = publicRead;
+  if (regenerateKey) pr.key = newKey();
+  if (resetDbPassword && pr.db) {
+    const password = newPassword();
+    const c = await adminClient();
+    try {
+      await c.query(`alter role "${pr.db.user}" password '${password}'`);
+    } finally {
+      await c.end();
+    }
+    pr.db.password = password;
+  }
+  await saveProjects(data);
+  return projectDetail(slug);
+}
+
+async function deleteProject(slug) {
+  const data = await loadProjects();
+  const pr = data.projects[slug];
+  if (!pr) throw httpError(404, "no such project");
+  const log = [];
+  const stamp = new Date().toISOString().replace(/\D/g, "").slice(0, 14);
+  const ts = `${stamp.slice(0, 8)}-${stamp.slice(8)}`;
+  if (pr.db) {
+    // final backup first — kept in backups/ after the database is gone
+    await mkdir(BACKUPS, { recursive: true });
+    const out = join(BACKUPS, `project-${slug}-${ts}-final.sql.gz`);
+    const dump = await sh("bash", ["-c", 'set -o pipefail; pg_dump --no-owner --no-acl --clean --if-exists "$SRC" | gzip -9 > "$OUT"'], {
+      env: { ...process.env, SRC: `postgresql://${pr.db.user}:${pr.db.password}@127.0.0.1:5432/${pr.db.name}`, OUT: out },
+      timeout: 900_000,
+    });
+    if (!dump.ok) throw httpError(500, `final backup failed, nothing deleted: ${dump.out}`);
+    log.push(`final database backup: ${basename(out)}`);
+    const c = await adminClient();
+    try {
+      await c.query(`drop database if exists "${pr.db.name}" with (force)`);
+      await c.query(`drop role if exists "${pr.db.user}"`);
+    } finally {
+      await c.end();
+    }
+    log.push(`dropped database ${pr.db.name}`);
+  }
+  if (pr.storage) {
+    const bucket = join(PROJECTS_DIR, slug);
+    await mkdir(TRASH, { recursive: true });
+    const dest = join(TRASH, `${slug}-${ts}`);
+    await rename(bucket, dest).catch(() => {});
+    log.push(`files moved to ${dest} (delete that folder to free the space)`);
+  }
+  delete data.projects[slug];
+  await saveProjects(data);
+  return { ok: true, out: log.join("\n") };
 }
 
 // ─────────────────────────────── routes ───────────────────────────────
@@ -372,10 +575,13 @@ async function api(req, res, url) {
     return send(res, 200, { ok: true });
   }
 
-  if (p === "/files" && m === "GET") return send(res, 200, await listFiles(url.searchParams.get("path") || ""));
-  if (p === "/files/download" && m === "GET") return download(res, inside(FILES, url.searchParams.get("path")));
+  const froot = () => rootDir(url.searchParams.get("root"));
+  if (p === "/files" && m === "GET") {
+    return send(res, 200, await listFiles(url.searchParams.get("root"), url.searchParams.get("path") || ""));
+  }
+  if (p === "/files/download" && m === "GET") return download(res, inside(await froot(), url.searchParams.get("path")));
   if (p === "/files/upload" && m === "POST") {
-    const dir = inside(FILES, url.searchParams.get("path") || "");
+    const dir = inside(await froot(), url.searchParams.get("path") || "");
     const name = basename(url.searchParams.get("name") || "");
     if (!name || name.startsWith(".")) return send(res, 400, { error: "bad file name" });
     const dest = inside(dir, name);
@@ -387,14 +593,26 @@ async function api(req, res, url) {
   if (p === "/files/mkdir" && m === "POST") {
     const { path: rel, name } = await readJson(req);
     if (!name || /[/\\]/.test(name) || name.startsWith(".")) return send(res, 400, { error: "bad folder name" });
-    await mkdir(inside(inside(FILES, rel || ""), name), { recursive: true });
+    await mkdir(inside(inside(await froot(), rel || ""), name), { recursive: true });
     return send(res, 200, { ok: true });
   }
   if (p === "/files" && m === "DELETE") {
-    const target = inside(FILES, url.searchParams.get("path"));
-    if (target === FILES) return send(res, 400, { error: "can't delete the storage root" });
+    const base = await froot();
+    const target = inside(base, url.searchParams.get("path"));
+    if (target === base) return send(res, 400, { error: "can't delete the storage root" });
     await rm(target, { recursive: true });
     return send(res, 200, { ok: true });
+  }
+
+  if (p === "/projects" && m === "GET") return send(res, 200, await listProjects());
+  if (p === "/projects" && m === "POST") return send(res, 200, await createProject(await readJson(req)));
+  if ((r = p.match(/^\/projects\/([a-z0-9-]+)$/))) {
+    if (m === "GET") return send(res, 200, await projectDetail(r[1]));
+    if (m === "PATCH") return send(res, 200, await updateProject(r[1], await readJson(req)));
+    if (m === "DELETE") {
+      if (url.searchParams.get("confirm") !== r[1]) return send(res, 400, { error: "type the project name to confirm" });
+      return send(res, 200, await deleteProject(r[1]));
+    }
   }
 
   if ((r = p.match(/^\/jobs\/(cron|discover|poll)$/)) && m === "POST") return send(res, 200, await runDaily(r[1]));

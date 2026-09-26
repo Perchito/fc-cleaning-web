@@ -151,6 +151,7 @@ loaders.overview = async () => {
   for (const d of o.disks) {
     html += stat(d.target === "/" ? "Disk" : `Disk ${d.target}`, bytes(d.used), `${bytes(d.avail)} free of ${bytes(d.size)}`, (d.used / d.size) * 100);
   }
+  html += stat("Projects", o.projects ?? 0, `<a href="#projects">databases &amp; storage for other repos</a>`);
   $("#stats").innerHTML = html;
 
   $("#svc-cards").innerHTML = o.services
@@ -266,7 +267,8 @@ loaders.database = async () => {
     ? `<tr><th>Backup</th><th class="num">Size</th><th></th></tr>` +
       bk.backups
         .map(
-          (b) => `<tr><td title="${esc(b.name)}">${esc(new Date(b.at).toLocaleString([], { dateStyle: "medium", timeStyle: "short" }))}</td>
+          (b) => `<tr><td title="${esc(b.name)}">${esc(new Date(b.at).toLocaleString([], { dateStyle: "medium", timeStyle: "short" }))}
+          <div class="muted small">${b.project ? `project: ${esc(b.project)}${b.name.includes("-final") ? " (final)" : ""}` : "outreach"}</div></td>
           <td class="num">${bytes(b.bytes)}</td>
           <td class="act"><a class="btn small" href="/api/backups/download?name=${encodeURIComponent(b.name)}">Download</a>
           <button class="btn small" data-restore="${esc(b.name)}">Restore</button>
@@ -281,7 +283,7 @@ $("#backup-now-2").onclick = backupNow;
 $("#backups").onclick = async (e) => {
   const r = e.target.closest("[data-restore]");
   if (r) {
-    if (!confirm(`Restore the database to ${r.dataset.restore}?\n\nCurrent data is backed up first, and the app is stopped while restoring.`)) return;
+    if (!confirm(`Restore from ${r.dataset.restore}?\n\nThe backup goes back into the database it came from. Its current data is backed up first.`)) return;
     await busy(r, "Restore", () => api("/api/backups/restore", { method: "POST", body: { name: r.dataset.restore } }));
     return route();
   }
@@ -300,14 +302,156 @@ $("#neon-form").onsubmit = async (e) => {
   route();
 };
 
+// ─────────────────────────────── projects ───────────────────────────────
+loaders.projects = async () => {
+  const r = await api("/api/projects");
+  $("#projects").innerHTML = r.projects.length
+    ? `<tr><th>Project</th><th>Database</th><th>Storage</th><th>Created</th><th></th></tr>` +
+      r.projects
+        .map(
+          (p) => `<tr><td><b>${esc(p.name)}</b><div class="muted small">${esc(p.slug)}</div></td>
+          <td>${p.db ? `${esc(p.db.name)}<div class="muted small">${bytes(p.dbBytes)}</div>` : `<span class="muted">—</span>`}</td>
+          <td>${p.storage ? `${bytes(p.storageBytes)}<span class="tag ${p.publicRead ? "pub" : ""}">${p.publicRead ? "public" : "private"}</span>` : `<span class="muted">—</span>`}</td>
+          <td>${esc(new Date(p.createdAt).toLocaleDateString())}</td>
+          <td class="act"><button class="btn small primary" data-proj="${esc(p.slug)}">Connect</button>
+            ${p.storage ? `<button class="btn small" data-browse="${esc(p.slug)}">Files</button>` : ""}
+            <button class="btn small danger" data-delproj="${esc(p.slug)}">Delete</button></td></tr>`,
+        )
+        .join("")
+    : `<tr><td class="empty">No projects yet. Create one for each repo that should keep its data on this server.</td></tr>`;
+  $("#projects-note").innerHTML = r.dbNetwork
+    ? `Databases accept connections from your network at <b>${esc(r.dbHost)}:5432</b>. Storage API: <b>${esc(r.storageUrl)}</b>.`
+    : `Databases only accept connections from this server (127.0.0.1). Re-run the installer with <code>--db-network</code> so apps on other machines (LAN / Tailscale) can connect. Storage API: <b>${esc(r.storageUrl)}</b>.`;
+};
+
+$("#new-project").onclick = () => {
+  $("#project-form").hidden = false;
+  $("#project-form [name=name]").focus();
+};
+$("#project-cancel").onclick = () => ($("#project-form").hidden = true);
+$("#project-form [name=name]").oninput = (e) => {
+  const slug = $("#project-form [name=slug]");
+  if (!slug.dataset.touched) slug.value = e.target.value.toLowerCase().trim().replace(/[^a-z0-9]+/g, "-").replace(/^-+|-+$/g, "").slice(0, 32);
+};
+$("#project-form [name=slug]").oninput = (e) => (e.target.dataset.touched = "1");
+$("#project-form").onsubmit = async (e) => {
+  e.preventDefault();
+  const f = e.target;
+  const body = { name: f.name.value, slug: f.slug.value, db: f.db.checked, storage: f.storage.checked, publicRead: f.publicRead.checked };
+  const btn = $("button[type=submit]", f);
+  btn.disabled = true;
+  try {
+    const p = await api("/api/projects", { method: "POST", body });
+    f.reset();
+    delete f.slug.dataset.touched;
+    f.hidden = true;
+    await loaders.projects();
+    showProject(p, true);
+  } catch (err) {
+    toast(err.message, true);
+  } finally {
+    btn.disabled = false;
+  }
+};
+
+function showProject(p, fresh = false) {
+  const copyBtn = (text, label = "Copy") => `<button class="btn small" data-copy="${esc(text)}">${label}</button>`;
+  let html = fresh ? `<p class="muted">Created. Paste these into the other repo's <code>.env</code> / hosting settings.</p>` : "";
+  if (p.env) {
+    html += `<div class="pm-section"><h4>Environment variables</h4>${copyBtn(p.env, "Copy all")}<pre class="snippet">${esc(p.env)}</pre></div>`;
+  }
+  if (p.db) {
+    html += `<div class="pm-section"><h4>Database</h4><div class="kv">
+      <div>Database / user</div><div><code>${esc(p.db.name)}</code></div>
+      <div>Connection string</div><div><code>${esc(p.db.url)}</code> ${copyBtn(p.db.url)}</div>
+      <div>Reachable from</div><div>${p.dbNetwork ? "your LAN / Tailscale" : "this server only (install with --db-network to open it to your LAN)"}</div>
+    </div><button class="btn small" data-pact="resetDbPassword">Reset database password</button></div>`;
+  }
+  if (p.storage) {
+    html += `<div class="pm-section"><h4>Storage</h4><div class="kv">
+      <div>Endpoint</div><div><code>${esc(p.storageEndpoint)}</code> ${copyBtn(p.storageEndpoint)}</div>
+      <div>Key</div><div><code>${esc(p.key)}</code> ${copyBtn(p.key)}</div>
+      <div>Access</div><div>${p.publicRead ? "anyone with a file URL can read it" : "key or signed URL needed to read"}</div>
+      <div>Try it</div><div><code>curl -X PUT -H "Authorization: Bearer $KEY" --data-binary @photo.jpg ${esc(p.storageEndpoint)}/photos/photo.jpg</code></div>
+    </div>
+    <div class="row"><button class="btn small" data-pact="togglePublic">${p.publicRead ? "Make private" : "Make public"}</button>
+    <button class="btn small" data-pact="regenerateKey">New key</button></div>
+    <p class="muted small note">Client for other repos: copy <code>homeserver/clients/home-storage.mjs</code> (put, get, list, delete, signed URLs).</p></div>`;
+  }
+  $("#pm-title").textContent = p.name;
+  $("#pm-body").innerHTML = html;
+  $("#pm-body").dataset.slug = p.slug;
+  $("#pm-body").dataset.public = p.publicRead ? "1" : "";
+  if (!$("#project-modal").open) $("#project-modal").showModal();
+}
+$("#pm-close").onclick = () => $("#project-modal").close();
+$("#pm-body").onclick = async (e) => {
+  const c = e.target.closest("[data-copy]");
+  if (c) {
+    await navigator.clipboard.writeText(c.dataset.copy).then(
+      () => toast("Copied"),
+      () => toast("Copy failed — select the text instead", true),
+    );
+    return;
+  }
+  const a = e.target.closest("[data-pact]");
+  if (!a) return;
+  const slug = $("#pm-body").dataset.slug;
+  const act = a.dataset.pact;
+  const msg = {
+    regenerateKey: "Make a new storage key? The old one (and URLs signed with it) stop working immediately.",
+    resetDbPassword: "Reset the database password? Apps using the old connection string will lose access until updated.",
+    togglePublic: $("#pm-body").dataset.public ? "Make this bucket private?" : "Make every file in this bucket readable by anyone who has its URL?",
+  }[act];
+  if (!confirm(msg)) return;
+  const body = act === "togglePublic" ? { publicRead: !$("#pm-body").dataset.public } : { [act]: true };
+  try {
+    showProject(await api(`/api/projects/${slug}`, { method: "PATCH", body }));
+    toast("Updated");
+    loaders.projects();
+  } catch (err) {
+    toast(err.message, true);
+  }
+};
+$("#projects").onclick = async (e) => {
+  const d = e.target.closest("[data-proj]");
+  if (d) return showProject(await api(`/api/projects/${d.dataset.proj}`));
+  const b = e.target.closest("[data-browse]");
+  if (b) {
+    loc = `project:${b.dataset.browse}`;
+    cwd = "";
+    location.hash = "#storage";
+    return;
+  }
+  const x = e.target.closest("[data-delproj]");
+  if (x) {
+    const slug = x.dataset.delproj;
+    const typed = prompt(`Delete project “${slug}”?\n\nIts database is backed up one last time and then dropped; its files move to storage/trash.\n\nType ${slug} to confirm:`);
+    if (typed !== slug) return typed != null && toast("Name didn't match — nothing deleted", true);
+    await busy(x, "Delete project", () => api(`/api/projects/${slug}?confirm=${encodeURIComponent(slug)}`, { method: "DELETE" }));
+    loaders.projects();
+  }
+};
+
 // ─────────────────────────────── storage ───────────────────────────────
 let cwd = "";
+let loc = "files";
+const fq = (path) => `root=${encodeURIComponent(loc)}&path=${encodeURIComponent(path)}`;
 loaders.storage = async () => {
-  const r = await api(`/api/files?path=${encodeURIComponent(cwd)}`);
+  let r;
+  try {
+    r = await api(`/api/files?${fq(cwd)}`);
+  } catch (e) {
+    if (loc === "files") throw e;
+    (loc = "files"), (cwd = ""); // project deleted → back to shared files
+    return loaders.storage();
+  }
   $("#storage-line").textContent = `Files kept on the server's disk · storage in use: ${bytes(r.storageBytes)} (includes backups)`;
+  $("#location").innerHTML = r.locations.map((l) => `<option value="${esc(l.id)}">${esc(l.label)}</option>`).join("");
+  $("#location").value = loc;
   const parts = cwd.split("/").filter(Boolean);
   $("#crumbs").innerHTML =
-    `<a data-cd="">files</a>` + parts.map((p, i) => ` / <a data-cd="${esc(parts.slice(0, i + 1).join("/"))}">${esc(p)}</a>`).join("");
+    `<a data-cd="">${loc === "files" ? "files" : esc(loc.slice(8))}</a>` + parts.map((p, i) => ` / <a data-cd="${esc(parts.slice(0, i + 1).join("/"))}">${esc(p)}</a>`).join("");
   $("#files").innerHTML = r.entries.length
     ? `<tr><th>Name</th><th class="num">Size</th><th>Modified</th><th></th></tr>` +
       r.entries
@@ -315,7 +459,7 @@ loaders.storage = async () => {
           const path = [cwd, f.name].filter(Boolean).join("/");
           const name = f.dir ? `<a class="dir" data-cd="${esc(path)}">📁 ${esc(f.name)}</a>` : esc(f.name);
           return `<tr><td>${name}</td><td class="num">${f.dir ? "—" : bytes(f.bytes)}</td><td>${esc(ago(f.at))}</td>
-            <td class="act">${f.dir ? "" : `<a class="btn small" href="/api/files/download?path=${encodeURIComponent(path)}">Download</a>`}
+            <td class="act">${f.dir ? "" : `<a class="btn small" href="/api/files/download?${fq(path)}">Download</a>`}
             <button class="btn small danger" data-rm="${esc(path)}">Delete</button></td></tr>`;
         })
         .join("")
@@ -329,20 +473,25 @@ document.addEventListener("click", async (e) => {
   }
   const rmb = e.target.closest("[data-rm]");
   if (rmb && confirm(`Delete ${rmb.dataset.rm}? This can't be undone.`)) {
-    await busy(rmb, "Delete", () => api(`/api/files?path=${encodeURIComponent(rmb.dataset.rm)}`, { method: "DELETE" }), { modal: false });
+    await busy(rmb, "Delete", () => api(`/api/files?${fq(rmb.dataset.rm)}`, { method: "DELETE" }), { modal: false });
     loaders.storage();
   }
 });
+$("#location").onchange = (e) => {
+  loc = e.target.value;
+  cwd = "";
+  loaders.storage();
+};
 $("#mkdir").onclick = async () => {
   const name = prompt("Folder name");
   if (!name) return;
-  await busy(null, "New folder", () => api("/api/files/mkdir", { method: "POST", body: { path: cwd, name } }), { modal: false });
+  await busy(null, "New folder", () => api(`/api/files/mkdir?${fq("")}`, { method: "POST", body: { path: cwd, name } }), { modal: false });
   loaders.storage();
 };
 function uploadOne(file, onProgress) {
   return new Promise((resolve, reject) => {
     const x = new XMLHttpRequest();
-    x.open("POST", `/api/files/upload?path=${encodeURIComponent(cwd)}&name=${encodeURIComponent(file.name)}`);
+    x.open("POST", `/api/files/upload?${fq(cwd)}&name=${encodeURIComponent(file.name)}`);
     x.setRequestHeader("x-fc-panel", "1");
     x.upload.onprogress = (e) => e.lengthComputable && onProgress(e.loaded / e.total);
     x.onload = () => (x.status < 300 ? resolve() : reject(new Error(JSON.parse(x.responseText || "{}").error || x.status)));

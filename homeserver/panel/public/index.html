@@ -26,6 +26,7 @@
         <div class="brand"><span class="dot"></span> FC Home Server</div>
         <nav id="nav">
           <a href="#overview" data-tab="overview">Overview</a>
+          <a href="#projects" data-tab="projects">Projects</a>
           <a href="#services" data-tab="services">Services &amp; logs</a>
           <a href="#database" data-tab="database">Database</a>
           <a href="#storage" data-tab="storage">Storage</a>
@@ -58,6 +59,34 @@
             <button class="btn" id="backup-now-2">Back up database</button>
             <button class="btn" id="update">Update from GitHub</button>
           </div>
+        </section>
+
+        <!-- projects -->
+        <section data-panel="projects" hidden>
+          <header class="head">
+            <div>
+              <h1>Projects</h1>
+              <p class="muted">Give each of your repos its own database and storage bucket on this server.</p>
+            </div>
+            <button class="btn primary" id="new-project">New project</button>
+          </header>
+          <form id="project-form" class="card form-card" hidden>
+            <div class="form-grid">
+              <label>Name <input name="name" placeholder="Wedding gallery" required maxlength="60" /></label>
+              <label>ID <input name="slug" placeholder="wedding-gallery" pattern="[a-z][a-z0-9-]{1,30}[a-z0-9]" title="3–32 characters: a–z, 0–9 and -" /></label>
+            </div>
+            <div class="row">
+              <label class="check"><input type="checkbox" name="db" checked /> PostgreSQL database</label>
+              <label class="check"><input type="checkbox" name="storage" checked /> Storage bucket</label>
+              <label class="check"><input type="checkbox" name="publicRead" /> Files readable without a key (public)</label>
+            </div>
+            <div class="row end">
+              <button class="btn ghost" type="button" id="project-cancel">Cancel</button>
+              <button class="btn primary" type="submit">Create project</button>
+            </div>
+          </form>
+          <div class="table-wrap"><table class="table" id="projects"></table></div>
+          <p class="muted small note" id="projects-note"></p>
         </section>
 
         <!-- services -->
@@ -119,7 +148,10 @@
               <label class="btn primary">Upload<input type="file" id="upload" multiple hidden /></label>
             </div>
           </header>
-          <div class="crumbs" id="crumbs"></div>
+          <div class="row crumb-row">
+            <select id="location" aria-label="Storage location"></select>
+            <div class="crumbs" id="crumbs"></div>
+          </div>
           <div class="drop" id="drop">
             <div class="table-wrap"><table class="table" id="files"></table></div>
             <div class="drop-hint">Drop files here to upload</div>
@@ -151,6 +183,10 @@
     <dialog id="modal">
       <div class="modal-head"><h3 id="modal-title"></h3><button class="btn ghost small" id="modal-close">Close</button></div>
       <pre id="modal-body"></pre>
+    </dialog>
+    <dialog id="project-modal" class="wide">
+      <div class="modal-head"><h3 id="pm-title"></h3><button class="btn ghost small" id="pm-close">Close</button></div>
+      <div id="pm-body"></div>
     </dialog>
     <div id="toast" class="toast" hidden></div>
 
