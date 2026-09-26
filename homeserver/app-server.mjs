@@ -47,14 +47,34 @@ function needsAuth(pathname, searchParams) {
   return pathname === "/ops" || pathname.startsWith("/ops/") || pathname.startsWith("/api/outreach/");
 }
 
+// Brute-force guard (the dashboard can be public, e.g. via Tailscale Funnel, where every
+// request arrives from the local proxy, so no per-IP limits): a login header that already
+// passed is let through at once; any other one is checked at most once per second across
+// all clients, so guessing is capped at ~1 try/s without ever locking the owner out.
+const CHECK_EVERY_MS = 1000;
+const knownGood = new Set(); // exact Authorization headers that passed (env changes restart the process)
+let nextCheckAt = 0;
+
+/** "ok" | "no" (send the login prompt) | "slow" (another check ran within the last second) */
 function authorised(req) {
   const user = (process.env.OPS_USER || "fc").trim();
   const pass = (process.env.OPS_PASS || "").trim();
   const header = req.headers.authorization || "";
-  if (!pass || !header.startsWith("Basic ")) return false;
+  if (!pass || !header.startsWith("Basic ")) return "no";
+  if (knownGood.has(header)) return "ok";
+  const now = Date.now();
+  if (now < nextCheckAt) return "slow";
+  nextCheckAt = now + CHECK_EVERY_MS;
   const decoded = Buffer.from(header.slice(6), "base64").toString();
   const i = decoded.indexOf(":");
-  return i > -1 && decoded.slice(0, i).trim() === user && decoded.slice(i + 1).trim() === pass;
+  if (i > -1 && decoded.slice(0, i).trim() === user && decoded.slice(i + 1).trim() === pass) {
+    if (knownGood.size > 50) knownGood.clear();
+    knownGood.add(header);
+    return "ok";
+  }
+  const from = String(req.headers["x-forwarded-for"] || req.socket.remoteAddress || "?").split(",")[0].trim();
+  console.warn(`[auth] wrong /ops login from ${from}`);
+  return "no";
 }
 
 // ─────────────────────────────── Vercel-style req/res ───────────────────────────────
@@ -136,7 +156,12 @@ const server = http.createServer(async (req, res) => {
     return res.end(JSON.stringify({ ok: db, db, uptime: Math.round(process.uptime()) }));
   }
 
-  if (needsAuth(pathname, url.searchParams) && !authorised(req)) {
+  const auth = needsAuth(pathname, url.searchParams) ? authorised(req) : "ok";
+  if (auth === "slow") {
+    res.writeHead(429, { "Retry-After": "1", "Cache-Control": "no-store" });
+    return res.end("Too many login attempts — wait a second and try again.");
+  }
+  if (auth === "no") {
     res.writeHead(401, {
       "WWW-Authenticate": 'Basic realm="FC Outreach", charset="UTF-8"',
       "Cache-Control": "no-store",
