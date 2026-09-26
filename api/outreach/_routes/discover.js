@@ -31,15 +31,13 @@ export default async function handler(req, res) {
   if (appConfig.cronSecret && auth !== `Bearer ${appConfig.cronSecret}`) {
     return res.status(401).json({ error: "unauthorized" });
   }
-  if (!process.env.ANTHROPIC_API_KEY) {
-    return res.status(500).json({ error: "ANTHROPIC_API_KEY not configured" });
-  }
   // Master AI switch — no lead research (and no credit spend) until OUTREACH_AI=on
   if (process.env.OUTREACH_AI !== "on") {
     return res.json({ ok: true, skipped: "OUTREACH_AI is not 'on'", added: [] });
   }
 
-  // Worker backend: hand it to the home Claude Code machine, don't touch the API.
+  // Worker backend: hand it to the home Claude Code machine, don't touch the API
+  // (so no ANTHROPIC_API_KEY needed).
   if (aiBackend() === "worker") {
     const existingNames = (await listProspects()).map((p) => p.business);
     const jobId = await enqueueJob(
@@ -47,6 +45,10 @@ export default async function handler(req, res) {
       {},
     );
     return res.json({ ok: true, queuedJob: jobId });
+  }
+
+  if (!process.env.ANTHROPIC_API_KEY) {
+    return res.status(500).json({ error: "ANTHROPIC_API_KEY not configured" });
   }
 
   if (!(await aiBudgetOk())) {

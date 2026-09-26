@@ -62,8 +62,8 @@ You can re-run the installer at any time. It keeps your database, settings and f
    Claude Code first if you need to). Then in Settings set `OUTREACH_AI=on` and
    start **AI worker** on the Overview page. AI drafts then use your Claude
    subscription, not API credits.
-   - The **discover** daily job (lead finding) still needs `ANTHROPIC_API_KEY`,
-     as it does on Vercel. If you don't set a key, change `DAILY_JOBS` to `cron`.
+   - The **discover** daily job (lead finding) also goes to the worker when
+     `AI_BACKEND=worker`, so it needs no `ANTHROPIC_API_KEY`.
 
 ## Using it for your other repos
 
