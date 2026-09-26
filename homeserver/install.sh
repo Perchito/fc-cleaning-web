@@ -1,11 +1,11 @@
 #!/usr/bin/env bash
-# FC Home Server — one-shot setup for Ubuntu 22.04 / 24.04.
+# FC Home Server — one-shot setup for Ubuntu 22.04 or newer (tested path: 24.04; 26.04 uses Ubuntu's own Node/PostgreSQL).
 #
 #   git clone https://github.com/Perchito/fc-cleaning-web.git ~/fc-cleaning-web
 #   cd ~/fc-cleaning-web && sudo bash homeserver/install.sh
 #
 # Installs and wires up, all on this machine:
-#   - Node.js 22 (if missing) and PostgreSQL 17 (if missing)
+#   - Node.js 20+ and PostgreSQL 16+ (Ubuntu's packages when new enough)
 #   - database `fc_outreach` + schema (api/outreach/_lib/schema.sql)
 #   - storage at /srv/fc-outreach/storage (files/ + backups/ + projects/)
 #   - systemd services: fc-outreach-app (dashboard + API, :4517),
@@ -55,17 +55,32 @@ apt-get update -qq
 apt-get install -y -qq curl git ca-certificates gnupg openssl gzip >/dev/null
 
 step "Node.js"
-if ! command -v node >/dev/null || [ "$(node -p 'process.versions.node.split(".")[0]')" -lt 20 ]; then
-  curl -fsSL https://deb.nodesource.com/setup_22.x | bash - >/dev/null
-  apt-get install -y -qq nodejs >/dev/null
+node_major() { node -p 'process.versions.node.split(".")[0]' 2>/dev/null || echo 0; }
+# major version Ubuntu's own repo offers (e.g. "22.14.0+dfsg-1" → 22), 0 if none
+apt_major() { apt-cache policy "$1" 2>/dev/null | awk '/Candidate:/ { split($2, v, /[.:+~-]/); print (v[1] ~ /^[0-9]+$/ ? v[1] : 0); exit }'; }
+if [ "$(node_major)" -lt 20 ]; then
+  NODE_CANDIDATE="$(apt_major nodejs)"
+  if [ "${NODE_CANDIDATE:-0}" -ge 20 ]; then
+    apt-get install -y -qq nodejs npm >/dev/null            # new Ubuntu releases ship a recent Node
+  else
+    curl -fsSL https://deb.nodesource.com/setup_22.x | bash - >/dev/null
+    apt-get install -y -qq nodejs >/dev/null
+  fi
 fi
 echo "node $(node -v)"
 
 step "PostgreSQL"
 if ! command -v pg_dump >/dev/null || ! systemctl list-unit-files postgresql.service >/dev/null 2>&1; then
-  apt-get install -y -qq postgresql-common >/dev/null
-  /usr/share/postgresql-common/pgdg/apt.postgresql.org.sh -y >/dev/null
-  apt-get install -y -qq postgresql-17 >/dev/null
+  # Ubuntu's own `postgresql` is 14 on 22.04, 16 on 24.04, newer after that. Use it
+  # when it is 16+; otherwise add the PostgreSQL project's repo for 17.
+  PG_CANDIDATE="$(apt-cache policy postgresql 2>/dev/null | awk '/Candidate:/ { split($2, v, /[+~.-]/); print (v[1] ~ /^[0-9]+$/ ? v[1] : 0); exit }')"
+  if [ "${PG_CANDIDATE:-0}" -ge 16 ]; then
+    apt-get install -y -qq postgresql >/dev/null
+  else
+    apt-get install -y -qq postgresql-common >/dev/null
+    /usr/share/postgresql-common/pgdg/apt.postgresql.org.sh -y >/dev/null
+    apt-get install -y -qq postgresql-17 >/dev/null
+  fi
 fi
 systemctl enable --now postgresql >/dev/null
 echo "$(psql --version)"

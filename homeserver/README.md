@@ -31,7 +31,7 @@ A **web control panel** manages all of it.
 
 ## Install (about 5 minutes)
 
-On the Ubuntu server (22.04 or 24.04), logged in as your normal user:
+On the Ubuntu server (22.04 or newer, including 26.04), logged in as your normal user:
 
 ```bash
 git clone https://github.com/Perchito/fc-cleaning-web.git ~/fc-cleaning-web
