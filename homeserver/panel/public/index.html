@@ -1,0 +1,159 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="robots" content="noindex" />
+    <title>FC Home Server</title>
+    <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'><rect width='32' height='32' rx='8' fill='%230b1c31'/><circle cx='16' cy='16' r='6' fill='%232dd4bf'/></svg>" />
+    <link rel="stylesheet" href="/styles.css" />
+  </head>
+  <body>
+    <!-- login -->
+    <main id="login" class="login" hidden>
+      <form id="login-form" class="login-card">
+        <div class="brand"><span class="dot"></span> FC Home Server</div>
+        <p class="muted">Control panel for the outreach server.</p>
+        <label>Password <input type="password" name="password" autocomplete="current-password" required autofocus /></label>
+        <button class="btn primary" type="submit">Sign in</button>
+        <p class="error" id="login-error"></p>
+      </form>
+    </main>
+
+    <!-- app -->
+    <div id="app" class="shell" hidden>
+      <aside class="side">
+        <div class="brand"><span class="dot"></span> FC Home Server</div>
+        <nav id="nav">
+          <a href="#overview" data-tab="overview">Overview</a>
+          <a href="#services" data-tab="services">Services &amp; logs</a>
+          <a href="#database" data-tab="database">Database</a>
+          <a href="#storage" data-tab="storage">Storage</a>
+          <a href="#settings" data-tab="settings">Settings</a>
+        </nav>
+        <div class="side-foot">
+          <div id="version" class="muted small"></div>
+          <button class="btn ghost small" id="logout">Sign out</button>
+        </div>
+      </aside>
+
+      <main class="content">
+        <!-- overview -->
+        <section data-panel="overview">
+          <header class="head">
+            <div>
+              <h1 id="hostname">Overview</h1>
+              <p class="muted" id="hostline"></p>
+            </div>
+            <a class="btn primary" id="open-ops" target="_blank" rel="noopener">Open outreach dashboard ↗</a>
+          </header>
+          <div class="stats" id="stats"></div>
+          <h2>Services</h2>
+          <div class="cards" id="svc-cards"></div>
+          <h2>Quick actions</h2>
+          <div class="actions">
+            <button class="btn" data-job="poll">Check inbox now</button>
+            <button class="btn" data-job="cron">Run daily job now</button>
+            <button class="btn" data-job="discover">Find new leads now</button>
+            <button class="btn" id="backup-now-2">Back up database</button>
+            <button class="btn" id="update">Update from GitHub</button>
+          </div>
+        </section>
+
+        <!-- services -->
+        <section data-panel="services" hidden>
+          <header class="head">
+            <div><h1>Services &amp; logs</h1><p class="muted">Start, stop and inspect everything running on the box.</p></div>
+          </header>
+          <div class="table-wrap"><table class="table" id="svc-table"></table></div>
+          <div class="log-head">
+            <h2>Logs</h2>
+            <div class="row">
+              <select id="log-unit"></select>
+              <select id="log-lines"><option>100</option><option selected>300</option><option>1000</option></select>
+              <label class="check"><input type="checkbox" id="log-follow" /> live</label>
+              <button class="btn small" id="log-refresh">Refresh</button>
+            </div>
+          </div>
+          <pre class="log" id="log"></pre>
+        </section>
+
+        <!-- database -->
+        <section data-panel="database" hidden>
+          <header class="head">
+            <div><h1>Database</h1><p class="muted" id="db-line">PostgreSQL</p></div>
+            <button class="btn primary" id="backup-now">Back up now</button>
+          </header>
+          <div class="stats" id="db-stats"></div>
+          <div class="grid2">
+            <div>
+              <h2>Tables</h2>
+              <div class="table-wrap"><table class="table" id="db-tables"></table></div>
+            </div>
+            <div>
+              <h2>Backups</h2>
+              <p class="muted small">Nightly at 03:00, newest 14 kept. Restoring takes a safety backup first.</p>
+              <div class="table-wrap"><table class="table" id="backups"></table></div>
+            </div>
+          </div>
+          <h2>Move data from Neon</h2>
+          <div class="card">
+            <p class="muted small">
+              One-time copy of the live outreach data from Neon (the Vercel database) into this server. Paste the Neon
+              <b>direct</b> connection string (Neon console → Connect → uncheck “Connection pooling”). Local data is
+              backed up first, then replaced.
+            </p>
+            <form id="neon-form" class="row">
+              <input name="url" type="password" placeholder="postgresql://…neon.tech/neondb?sslmode=require" required />
+              <button class="btn" type="submit">Import</button>
+            </form>
+          </div>
+        </section>
+
+        <!-- storage -->
+        <section data-panel="storage" hidden>
+          <header class="head">
+            <div><h1>Storage</h1><p class="muted" id="storage-line"></p></div>
+            <div class="row">
+              <button class="btn" id="mkdir">New folder</button>
+              <label class="btn primary">Upload<input type="file" id="upload" multiple hidden /></label>
+            </div>
+          </header>
+          <div class="crumbs" id="crumbs"></div>
+          <div class="drop" id="drop">
+            <div class="table-wrap"><table class="table" id="files"></table></div>
+            <div class="drop-hint">Drop files here to upload</div>
+          </div>
+          <div class="progress" id="progress" hidden><div></div></div>
+        </section>
+
+        <!-- settings -->
+        <section data-panel="settings" hidden>
+          <header class="head">
+            <div><h1>Settings</h1><p class="muted" id="env-file"></p></div>
+          </header>
+          <form id="settings-form">
+            <div class="table-wrap"><table class="table settings" id="settings"></table></div>
+            <div class="row">
+              <input id="new-key" placeholder="NEW_VARIABLE" pattern="[A-Z0-9_]+" />
+              <button class="btn small" type="button" id="add-key">Add variable</button>
+            </div>
+            <div class="row end">
+              <label class="check"><input type="checkbox" id="restart-after" checked /> restart app &amp; worker after saving</label>
+              <button class="btn primary" type="submit">Save settings</button>
+            </div>
+          </form>
+        </section>
+      </main>
+    </div>
+
+    <!-- output modal -->
+    <dialog id="modal">
+      <div class="modal-head"><h3 id="modal-title"></h3><button class="btn ghost small" id="modal-close">Close</button></div>
+      <pre id="modal-body"></pre>
+    </dialog>
+    <div id="toast" class="toast" hidden></div>
+
+    <script src="/app.js" type="module"></script>
+  </body>
+</html>

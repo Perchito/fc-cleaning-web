@@ -43,6 +43,12 @@ the `DATABASE_URL` env var. See `PLAN-mailshake.md` for the wider rebuild.
 The old single JSON blob (`outreach/prospects.json`) was migrated across by
 `migrate.js` (a one-off endpoint — safe to delete once prod is verified).
 
+## Self-hosting on the Ubuntu home server
+
+`homeserver/` runs this same API + dashboard on a home Ubuntu box with a local
+Postgres (`DB_DRIVER=pg`), disk storage, and a control-panel GUI — see
+`homeserver/README.md`.
+
 ## Required environment variables (Vercel → Settings → Environment Variables)
 
 | Var | Value |
