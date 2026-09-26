@@ -229,13 +229,12 @@ async function overview() {
 async function dbInfo() {
   const c = await dbClient();
   try {
-    const [{ rows: v }, { rows: size }, { rows: tables }, { rows: conns }] = await Promise.all([
-      c.query("select current_setting('server_version') as version, current_database() as db"),
-      c.query("select pg_database_size(current_database())::bigint as bytes"),
-      c.query(`select relname as name, pg_total_relation_size(relid)::bigint as bytes
-               from pg_stat_user_tables order by relname`),
-      c.query("select count(*)::int as n from pg_stat_activity where datname = current_database()"),
-    ]);
+    // one client runs one query at a time (pg deprecates overlapping queries)
+    const { rows: v } = await c.query("select current_setting('server_version') as version, current_database() as db");
+    const { rows: size } = await c.query("select pg_database_size(current_database())::bigint as bytes");
+    const { rows: tables } = await c.query(`select relname as name, pg_total_relation_size(relid)::bigint as bytes
+               from pg_stat_user_tables order by relname`);
+    const { rows: conns } = await c.query("select count(*)::int as n from pg_stat_activity where datname = current_database()");
     for (const t of tables) {
       const { rows } = await c.query(`select count(*)::int as n from "${t.name.replace(/"/g, '""')}"`);
       t.rows = rows[0].n;
