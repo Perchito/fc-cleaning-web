@@ -8,7 +8,7 @@
 import { listProspects, upsertProspect } from "../_lib/prospects.js";
 import { config as appConfig } from "../_lib/config.js";
 import { aiBudgetOk, recordAiSpend, aiCostOf, aiBackend, discoverSpec } from "../_lib/ai.js";
-import { enqueueJob } from "../_lib/jobs.js";
+import { enqueueJob, hasOpenJob } from "../_lib/jobs.js";
 
 const MODEL = "claude-sonnet-5";
 const TARGET_COUNT = 3;
@@ -39,6 +39,8 @@ export default async function handler(req, res) {
   // Worker backend: hand it to the home Claude Code machine, don't touch the API
   // (so no ANTHROPIC_API_KEY needed).
   if (aiBackend() === "worker") {
+    if (await hasOpenJob("discover"))
+      return res.json({ ok: true, skipped: "a lead search is already queued for the worker", added: [] });
     const existingNames = (await listProspects()).map((p) => p.business);
     const jobId = await enqueueJob(
       discoverSpec({ area: req.query.area, count: TARGET_COUNT, existingNames }),

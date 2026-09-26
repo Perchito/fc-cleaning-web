@@ -10,7 +10,7 @@ import { listProspects, updateResearch } from "../_lib/prospects.js";
 import { pollReplies } from "../_lib/imap.js";
 import { buildQueue } from "../_lib/queue.js";
 import { enrichProspect, enrichSpec, aiEnabled, aiBackend } from "../_lib/ai.js";
-import { enqueueJob } from "../_lib/jobs.js";
+import { enqueueJob, hasOpenJob } from "../_lib/jobs.js";
 import { maybeSendDigest } from "../_lib/digest.js";
 import { config as appConfig } from "../_lib/config.js";
 
@@ -43,6 +43,7 @@ export default async function handler(req, res) {
       const done = [];
       for (const p of need.slice(0, ENRICH_PER_RUN)) {
         if (aiBackend() === "worker") {
+          if (await hasOpenJob("enrich", p.id)) continue; // still waiting from an earlier run
           await enqueueJob(enrichSpec(p), { prospectId: p.id });
           done.push(p.id);
         } else {

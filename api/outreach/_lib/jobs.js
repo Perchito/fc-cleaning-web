@@ -22,6 +22,17 @@ export async function enqueueJob(spec, ref = {}) {
   return rows[0].id;
 }
 
+/** Is a `kind` job (for this prospect, if given) already queued or running? Lets the
+ *  daily jobs skip work that is still waiting, so an offline worker doesn't pile up repeats. */
+export async function hasOpenJob(kind, prospectId = null) {
+  const rows = await sql`
+    select 1 from ai_jobs
+    where kind = ${kind} and status in ('pending', 'running')
+      and (${prospectId}::text is null or input->'ref'->>'prospectId' = ${prospectId})
+    limit 1`;
+  return rows.length > 0;
+}
+
 /** Atomically hand `limit` pending jobs to the worker. */
 export async function claimJobs(limit = 4) {
   const rows = await sql`
