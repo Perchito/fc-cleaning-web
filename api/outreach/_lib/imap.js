@@ -370,10 +370,8 @@ export async function auditReplies({ sinceDays = 75 } = {}) {
       await sql`delete from events where prospect_id = ${p.id} and type = 'reply'
                and (message_id is null or message_id <> ${g.messageId})`;
       const ex = await sql`
-        select id from events where prospect_id = ${p.id} and type = 'reply' and message_id = ${g.messageId}`;
-      if (ex.length)
-        await sql`update events set snippet = ${g.snippet}, at = ${g.at} where id = ${ex[0].id}`;
-      else
+        select 1 from events where prospect_id = ${p.id} and type = 'reply' and message_id = ${g.messageId}`;
+      if (!ex.length)
         await sql`
           insert into events (prospect_id, type, at, snippet, message_id)
           values (${p.id}, 'reply', ${g.at}, ${g.snippet}, ${g.messageId})`;
@@ -477,5 +475,5 @@ function cleanSnippet(text) {
     .join("\n")
     .replace(/\n{3,}/g, "\n\n")
     .trim()
-    .slice(0, 2000);
+    .slice(0, 400);
 }

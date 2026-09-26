@@ -124,20 +124,9 @@ async function applyResult(kind, ref, output) {
 
   if (kind === "discover") {
     const leads = Array.isArray(output?.leads) ? output.leads : [];
-    const added = [];
     for (const lead of leads) {
       if (!lead?.business || !lead?.email) continue;
-      const notes = [lead.ownership, lead.notes].filter(Boolean).join(" — ");
-      const p = await upsertProspect({ ...lead, notes, source: "ai-research (worker)" });
-      added.push(p.id);
-    }
-    // If a campaign was chosen in "Find leads", enrol the new ones and build
-    // their first emails now (dynamic imports avoid a queue<->jobs import cycle).
-    if (ref.campaignId && added.length) {
-      const { enrollProspects } = await import("./campaigns.js");
-      await enrollProspects(ref.campaignId, added).catch(() => {});
-      const { buildQueue } = await import("./queue.js");
-      await buildQueue().catch(() => {});
+      await upsertProspect({ ...lead, source: "ai-research (worker)" });
     }
     return;
   }

@@ -8,11 +8,21 @@ const STATUS_TONE = {
   awaiting_reply: "blue",
   follow_up_due: "amber",
   replied: "green",
+  quote_sent: "purple",
   won: "teal",
   lost: "gray",
   bounced: "rose",
   unsubscribed: "rose",
 };
+
+function FsaBadge({ rating }) {
+  if (!rating) return null;
+  if (rating === "AwaitingInspection")
+    return <Badge tone="blue" className="!px-1.5">FSA new</Badge>;
+  const n = Number(rating);
+  const tone = n <= 1 ? "rose" : n === 2 ? "amber" : "emerald";
+  return <Badge tone={tone} className="!px-1.5">FSA ★ {rating}</Badge>;
+}
 
 export default function Prospects() {
   const { data, loading, error, reload } = useResource("/prospects", { pollMs: 90000 });
@@ -21,7 +31,6 @@ export default function Prospects() {
   const [status, setStatus] = useState("");
   const [sel, setSel] = useState(new Set());
   const [addOpen, setAddOpen] = useState(false);
-  const [findOpen, setFindOpen] = useState(false);
   const [importOpen, setImportOpen] = useState(false);
   const [enrollOpen, setEnrollOpen] = useState(false);
   const [detail, setDetail] = useState(null);
@@ -87,10 +96,7 @@ export default function Prospects() {
 
   return (
     <>
-      <PageHead title="Prospects" sub={`${data.total} total · ${rows.length} shown`}>
-        <Button size="sm" variant="outline" onClick={() => setFindOpen(true)}>
-          Find leads
-        </Button>
+      <PageHead title="Prospects" sub={`${data.total} total · ${rows.length} shown · ${(data?.prospects || []).filter((p) => p.status === "draft" && !p.researchAt).length} awaiting research`}>
         <Button size="sm" variant="outline" onClick={() => setImportOpen(true)}>
           Import CSV
         </Button>
@@ -108,7 +114,7 @@ export default function Prospects() {
         />
         <Select value={status} onChange={(e) => setStatus(e.target.value)} className="max-w-[12rem]">
           <option value="">All statuses</option>
-          {["draft", "awaiting_reply", "follow_up_due", "replied", "won", "lost", "bounced", "unsubscribed"].map((s) => (
+          {["draft", "awaiting_reply", "follow_up_due", "replied", "quote_sent", "won", "lost", "bounced", "unsubscribed"].map((s) => (
             <option key={s} value={s}>
               {s.replace(/_/g, " ")}
             </option>
@@ -149,7 +155,10 @@ export default function Prospects() {
                   <td className="rounded-l-lg px-2" onClick={(e) => e.stopPropagation()}>
                     <input type="checkbox" checked={sel.has(p.id)} onChange={() => toggle(p.id)} />
                   </td>
-                  <td className="px-2 py-2 font-semibold text-navy-900">{p.business}</td>
+                  <td className="px-2 py-2 font-semibold text-navy-900">
+                    <div>{p.business}</div>
+                    {p.fsaRating && <div className="mt-1"><FsaBadge rating={p.fsaRating} /></div>}
+                  </td>
                   <td className="px-2 py-2 text-navy-500">{p.contactName || "—"}</td>
                   <td className="px-2 py-2 text-navy-500">{p.location || "—"}</td>
                   <td className="px-2 py-2">
@@ -167,12 +176,6 @@ export default function Prospects() {
       </div>
 
       <AddModal open={addOpen} onClose={() => setAddOpen(false)} onDone={reload} />
-      <FindModal
-        open={findOpen}
-        onClose={() => setFindOpen(false)}
-        campaigns={campaigns.data?.campaigns || []}
-        onDone={reload}
-      />
       <ImportModal
         open={importOpen}
         onClose={() => setImportOpen(false)}
@@ -230,73 +233,6 @@ function AddModal({ open, onClose, onDone }) {
         </div>
         <Field label="Website"><Input value={f.website || ""} onChange={set("website")} /></Field>
         <Button onClick={save}>Add</Button>
-      </div>
-    </Modal>
-  );
-}
-
-function FindModal({ open, onClose, campaigns, onDone }) {
-  const [area, setArea] = useState("Bolton");
-  const [count, setCount] = useState(3);
-  const [campaignId, setCampaignId] = useState("");
-  const [busy, setBusy] = useState(false);
-  const [msg, setMsg] = useState("");
-
-  async function run() {
-    setBusy(true);
-    setMsg("Sent to the home worker — it's searching the web…");
-    try {
-      const r = await post("/find-leads", { area, count, campaignId: campaignId || undefined });
-      const done = await pollJob(r.jobId, { timeout: 360000 });
-      if (done.ok) {
-        setMsg(
-          campaignId
-            ? "Done — new leads added, enrolled, and their first emails are in the Queue."
-            : "Done — new leads added as drafts. Check the list.",
-        );
-        onDone();
-      } else {
-        setMsg("Failed: " + done.error);
-      }
-    } catch (e) {
-      setMsg(e.message);
-    } finally {
-      setBusy(false);
-    }
-  }
-
-  return (
-    <Modal open={open} onClose={onClose} title="Find new leads">
-      <div className="space-y-3">
-        <p className="text-sm text-navy-500">
-          Your home machine researches hospitality venues in an area and adds any with a genuinely
-          published email. Takes a couple of minutes. Nothing is sent.
-        </p>
-        <div className="grid grid-cols-3 gap-3">
-          <div className="col-span-2">
-            <Field label="Area">
-              <Input value={area} onChange={(e) => setArea(e.target.value)} placeholder="e.g. Horwich and Westhoughton" />
-            </Field>
-          </div>
-          <Field label="How many">
-            <Input type="number" min="1" max="8" value={count} onChange={(e) => setCount(Number(e.target.value))} />
-          </Field>
-        </div>
-        <Field label="Put them straight into a campaign?" hint="drafts their first email into the Queue for you to review — nothing sends without approval">
-          <Select value={campaignId} onChange={(e) => setCampaignId(e.target.value)}>
-            <option value="">Just add as drafts</option>
-            {campaigns.map((c) => (
-              <option key={c.id} value={c.id}>
-                {c.name}
-                {c.status !== "active" ? ` (${c.status})` : ""}
-              </option>
-            ))}
-          </Select>
-        </Field>
-        <Button onClick={run} disabled={busy || !area.trim()}>
-          {busy ? "Searching…" : "Search"}
-        </Button>
-        {msg && <p className="text-sm text-navy-600">{msg}</p>}
       </div>
     </Modal>
   );

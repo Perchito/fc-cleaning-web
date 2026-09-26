@@ -33,6 +33,12 @@ create table if not exists prospects (
   updated_at        timestamptz not null default now()
 );
 
+-- FSA Food Hygiene Ratings linkage (daily ingest)
+alter table prospects add column if not exists fhrs_id        integer;
+alter table prospects add column if not exists fsa_rating     text;
+alter table prospects add column if not exists fsa_rating_date text;
+create unique index if not exists prospects_fhrs_id_idx on prospects (fhrs_id) where fhrs_id is not null;
+
 create table if not exists suppression (
   email      text primary key,
   reason     text not null,

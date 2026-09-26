@@ -54,6 +54,9 @@ function rowToProspect(r) {
     followUpsSent: r.followups_sent ?? 0,
     research: r.research || null,
     researchAt: iso(r.research_at),
+    fsaId: r.fhrs_id ?? null,
+    fsaRating: r.fsa_rating ?? null,
+    fsaRatingDate: r.fsa_rating_date ?? null,
     sends: (r.sends || []).map((s) => ({
       type: s.type,
       subject: s.subject,
@@ -221,7 +224,7 @@ export async function setStatus(id, { status, notes }) {
   return getProspect(id);
 }
 
-const CALL_KEEP = ["replied", "won", "lost", "unsubscribed", "bounced"];
+const CALL_KEEP = ["replied", "won", "lost", "unsubscribed", "bounced", "quote_sent"];
 
 export async function logCall(id, { note, outcome }) {
   const p = await sql`select status from prospects where id = ${id}`;

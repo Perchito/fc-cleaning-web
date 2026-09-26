@@ -1,6 +1,6 @@
 import { setStatus, decorate } from "../_lib/prospects.js";
 
-const ALLOWED = ["awaiting_reply", "replied", "bounced", "won", "lost", "unsubscribed", "draft"];
+const ALLOWED = ["awaiting_reply", "replied", "bounced", "won", "lost", "unsubscribed", "draft", "quote_sent"];
 
 export default async function handler(req, res) {
   if (req.method !== "POST") {

@@ -265,33 +265,14 @@ export function discoverSpec({ area, count = 3, existingNames = [] }) {
     maxTokens: 3000,
     system:
       "You are a careful lead researcher for a commercial cleaning company. Never invent a business or an email — only include a venue where you found a genuinely published contact email (a mailto: link or an address shown on a Contact/About page).",
-    prompt: `Area: "${area || "Bolton and the North West"}"
-If that is not a recognisable UK place name, return {"leads":[]} and stop.
-
-Find up to ${count} hospitality venues (restaurants, pubs, bars, cafés, small hotels) in or very
-near that area that are NOT already in this list:
+    prompt: `Find up to ${count} independently or small-group owned hospitality venues (restaurants,
+pubs, bars, cafés, small hotels) around ${area || "Bolton and the North West"} that are NOT already
+in this list:
 ${JSON.stringify(existingNames)}
 
-ONLY include a venue if it is genuinely independent / owner-operated / family-run — a single site,
-or at most 2-3 sites all run by the same named owner(s). The pitch is a personal note to the person
-who runs the place. EXCLUDE anything with a company behind it: national or regional chains and
-franchises, pub companies / breweries that own the pub (tied houses — a free house is fine), hotel
-groups, restaurant groups of 4+ sites, contract caterers, and anything run by a council or a larger
-parent company. When in doubt, check Companies House / the "about" page for how many sites and who
-owns it, and leave it out if it looks corporate.
-
-For each kept venue, use web search and fetch the Contact/About page to confirm a real published
-email (a mailto: link or an address written on the page). Skip any venue where you can't find one.
-Prefer a personal / owner / manager address over a generic one where both are shown.
-
-The "hook" goes into the sentence "I'm reaching out about ___." so it must be a short lowercase
-noun phrase grounded in something specific about the venue - e.g. "kitchen extraction and
-canopy degreasing for your open-grill kitchen", "a before-open clean of the bar and function
-room", "washroom and dining-floor cleaning around your seven-day service". Not generic.
-
-Return ONLY a JSON object:
-{"leads":[{"business":"","email":"","contactName":null,"address":"","location":"","phone":null,"website":"","hook":"","ownership":"one phrase — e.g. 'family-run, single site' / 'owner Raz, independent'","notes":"one sentence citing what you found and where"}]}
-If you can't verify ${count} independent venues, return fewer. Never fabricate a business or an email.`,
+For each, use web search and fetch the Contact/About page to confirm a real published email.
+Return ONLY a JSON object: {"leads":[{"business":"","email":"","contactName":null,"address":"","location":"","phone":null,"website":"","hook":"lowercase noun phrase for 'I'm reaching out about ___.'","notes":"one sentence citing what you found and where"}]}
+If you can't verify ${count}, return fewer. Never fabricate.`,
   };
 }
 
