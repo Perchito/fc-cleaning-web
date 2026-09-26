@@ -56,8 +56,9 @@ You can re-run the installer at any time. It keeps your database, settings and f
    string (Neon console → Connect → turn off "Connection pooling"). Your
    existing prospects, campaigns and send history are copied into the local database.
 4. **Stop Vercel's copy** so the two copies don't both email the daily digest
-   or poll the inbox. Remove the `crons` block from `vercel.json` (or delete
-   `CRON_SECRET` in Vercel), and from now on use `/ops` on the home server.
+   or poll the inbox. `vercel.json` no longer schedules the jobs; on a project
+   deployed before that change, also turn off Vercel → Settings → Cron Jobs.
+   From now on use `/ops` on the home server.
 5. **AI (optional):** on the server run `claude login` as your user (install
    Claude Code first if you need to). Then in Settings set `OUTREACH_AI=on` and
    start **AI worker** on the Overview page. AI drafts then use your Claude
