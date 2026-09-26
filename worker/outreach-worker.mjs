@@ -19,6 +19,11 @@ const SITE = (process.env.SITE_URL || "https://www.fccleaningcompany.com").repla
 const SECRET = process.env.WORKER_SECRET;
 const POLL_MS = Number(process.env.POLL_MS || 8000);
 const CLAUDE = process.env.CLAUDE_BIN || "claude";
+// Claude Code prefers an API key over the `claude login` subscription when one is
+// in its environment, so never pass one down — jobs always run on the subscription.
+const CLAUDE_ENV = { ...process.env };
+delete CLAUDE_ENV.ANTHROPIC_API_KEY;
+delete CLAUDE_ENV.ANTHROPIC_AUTH_TOKEN;
 
 if (!SECRET) {
   console.error("Set WORKER_SECRET (must match the value in Vercel).");
@@ -47,6 +52,7 @@ async function runJob(job) {
   args.push("--allowedTools", job.web ? "WebSearch,WebFetch" : "");
 
   const { stdout } = await run(CLAUDE, args, {
+    env: CLAUDE_ENV,
     timeout: job.web ? 300_000 : 120_000,
     maxBuffer: 8 * 1024 * 1024,
   });
