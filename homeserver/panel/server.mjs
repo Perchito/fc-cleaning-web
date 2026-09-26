@@ -493,7 +493,7 @@ async function deleteProject(slug) {
     // final backup first — kept in backups/ after the database is gone
     await mkdir(BACKUPS, { recursive: true });
     const out = join(BACKUPS, `project-${slug}-${ts}-final.sql.gz`);
-    const dump = await sh("bash", ["-c", 'set -o pipefail; pg_dump --no-owner --no-acl --clean --if-exists "$SRC" | gzip -9 > "$OUT"'], {
+    const dump = await sh("bash", ["-c", 'set -o pipefail; pg_dump --no-owner --no-acl --clean --if-exists "$SRC" | gzip -9 > "$OUT" || { rm -f "$OUT"; exit 1; }'], {
       env: { ...process.env, SRC: `postgresql://${pr.db.user}:${pr.db.password}@127.0.0.1:5432/${pr.db.name}`, OUT: out },
       timeout: 900_000,
     });

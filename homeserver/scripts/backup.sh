@@ -18,7 +18,7 @@ mkdir -p "$DIR"
 
 dump() { # <url> <file prefix>
   local out="$DIR/$2-$STAMP.sql.gz"
-  pg_dump --no-owner --no-acl --clean --if-exists "$1" | gzip -9 > "$out.part"
+  pg_dump --no-owner --no-acl --clean --if-exists "$1" | gzip -9 > "$out.part" || { rm -f "$out.part"; return 1; }
   mv "$out.part" "$out"
   echo "backup written: $out ($(du -h "$out" | cut -f1))"
   # keep the newest $KEEP for this prefix (timestamps sort lexically)
