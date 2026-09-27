@@ -1,5 +1,5 @@
 #!/usr/bin/env node
-// FC Home Server — control panel.
+// Perchito's Server — control panel.
 // A small web GUI (no dependencies beyond `pg` from the repo) for the Ubuntu
 // box: service status + start/stop/restart, logs, host health, the outreach
 // database (stats, backups/restore, Neon import), projects (a database +
@@ -710,4 +710,4 @@ const server = http.createServer(async (req, res) => {
   }
 });
 
-server.listen(PORT, HOST, () => console.log(`FC Home Server panel on http://${HOST}:${PORT}`));
+server.listen(PORT, HOST, () => console.log(`Perchito's Server panel on http://${HOST}:${PORT}`));

@@ -1,27 +1,37 @@
-# FC Home Server — your own Ubuntu box for outreach and your other repos
+# Perchito's Server — your own Ubuntu box for fc-crm and all your other repos
 
 Turns an Ubuntu server at home into:
 
-1. **The host for this repo's outreach tool** (the `/ops` dashboard, the
-   `/api/outreach` API, the daily jobs and the AI worker). It uses a local
-   PostgreSQL database instead of Neon. The public marketing site stays on Vercel.
-2. **Database + file storage for any of your other repos.** In the panel,
-   each repo gets a **project** with its own PostgreSQL database and its own
-   storage bucket (a small S3-style HTTP API with keys and signed URLs).
+1. **The host for fc-crm** (github.com/Perchito/fc-crm) — CRM, pipeline,
+   campaigns and AI lead discovery, on its own local PostgreSQL database.
+   Publicly reachable via Tailscale Funnel. This repo's own outreach tool
+   (`/ops`, `/api/outreach`) is retired — stopped, kept installed only so
+   its data and backups aren't lost.
+2. **Database + file storage for any of your other repos** (the refund
+   tracker, the wedding gallery, etc.). In the panel, each repo gets a
+   **project** with its own PostgreSQL database and its own storage bucket
+   (a small S3-style HTTP API with keys and signed URLs). fc-crm is
+   registered as a project too, on its existing database, so its backups
+   flow through the same nightly dump as everything else.
 
 A **web control panel** manages all of it.
 
 ```
-                   Ubuntu home server
+                   Ubuntu home server ("perchito")
  ┌──────────────────────────────────────────────────────────────┐
  │  fc-panel            :8090   control panel (this folder)     │
- │  fc-outreach-app     :4517   /ops dashboard + /api/outreach  │
- │                              + daily cron & discover jobs    │
- │  fc-outreach-worker          AI jobs → headless Claude Code  │
+ │  fc-crm              :4600   CRM + pipeline + campaigns,     │
+ │                              public via Tailscale Funnel     │
+ │  fc-crm-discover.timer       daily AI lead search + drafting │
+ │  fc-outreach-app     :4517   retired — stopped, data kept    │
+ │  fc-outreach-worker          retired — stopped, data kept    │
  │  fc-storage          :9100   storage API: /v1/<project>/…    │
  │  postgresql          :5432   "fc_outreach" + one database    │
- │                              per project (p_<project>)       │
+ │                              per project (p_<project>),      │
+ │                              incl. "fc_crm" (adopted, not    │
+ │                              p_-prefixed — pre-existing)      │
  │  fc-outreach-backup.timer    nightly pg_dump of every DB     │
+ │                              (outreach + every project)      │
  │                                                              │
  │  /srv/fc-outreach/storage/   files/ backups/ projects/ trash/│
  │  /etc/fc-outreach/outreach.env   settings + secrets          │

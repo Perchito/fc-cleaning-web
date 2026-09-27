@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# FC Home Server — one-shot setup for Ubuntu 22.04 or newer (tested path: 24.04; 26.04 uses Ubuntu's own Node/PostgreSQL).
+# Perchito's Server — one-shot setup for Ubuntu 22.04 or newer (tested path: 24.04; 26.04 uses Ubuntu's own Node/PostgreSQL).
 #
 #   git clone https://github.com/Perchito/fc-cleaning-web.git ~/fc-cleaning-web
 #   cd ~/fc-cleaning-web && sudo bash homeserver/install.sh
@@ -94,7 +94,7 @@ if [ ! -f "$ENV_FILE" ]; then
   OPS_PASS="$(rand 9)"
   PANEL_PASS="$(rand 9)"
   cat > "$ENV_FILE" <<EOF
-# FC Home Server — environment for the outreach app, AI worker and control panel.
+# Perchito's Server — environment for the outreach app, AI worker and control panel.
 # Edit here or in the control panel (Settings). Restart the services after changes.
 
 # ── database (local PostgreSQL) ──
@@ -258,7 +258,7 @@ EOF
 
 cat > /etc/systemd/system/fc-panel.service <<EOF
 [Unit]
-Description=FC Home Server control panel
+Description=Perchito's Server control panel
 After=network-online.target
 Wants=network-online.target
 
@@ -278,7 +278,7 @@ EOF
 
 cat > /etc/systemd/system/fc-storage.service <<EOF
 [Unit]
-Description=Home Server storage API (project buckets)
+Description=Perchito's Server storage API (project buckets)
 After=network-online.target
 Wants=network-online.target
 
@@ -365,7 +365,7 @@ sleep 2
 cat <<EOF
 
 ────────────────────────────────────────────────────────────
-  FC Home Server is set up.
+  Perchito's Server is set up.
 
   Control panel    http://$IP:$PANEL_PORT
                    password: $PANEL_PASS

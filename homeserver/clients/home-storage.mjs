@@ -1,4 +1,4 @@
-// Home Server storage client — copy this file into any repo that stores files
+// Perchito's Server storage client — copy this file into any repo that stores files
 // on the home server. Works in Node 18+ (and edge runtimes) with no dependencies.
 //
 //   import { homeStorage } from "./home-storage.mjs";

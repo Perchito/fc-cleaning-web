@@ -1,5 +1,5 @@
 #!/usr/bin/env node
-// Home Server storage API: file storage for every project (repo) on this box,
+// Perchito's Server storage API: file storage for every project (repo) on this box,
 // a self-hosted stand-in for S3 / Vercel Blob / Supabase Storage.
 //
 //   PUT    /v1/<project>/<path>     upload (body = file bytes)
@@ -220,4 +220,4 @@ const server = http.createServer(async (req, res) => {
   }
 });
 
-server.listen(PORT, HOST, () => console.log(`Home Server storage API on http://${HOST}:${PORT}/v1/<project>/…  (buckets in ${ROOT})`));
+server.listen(PORT, HOST, () => console.log(`Perchito's Server storage API on http://${HOST}:${PORT}/v1/<project>/…  (buckets in ${ROOT})`));

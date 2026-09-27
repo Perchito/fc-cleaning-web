@@ -1,4 +1,4 @@
-// FC Home Server — control panel front end (vanilla JS, no build).
+// Perchito's Server — control panel front end (vanilla JS, no build).
 
 const $ = (s, el = document) => el.querySelector(s);
 const $$ = (s, el = document) => [...el.querySelectorAll(s)];
