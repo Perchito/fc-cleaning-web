@@ -2,8 +2,9 @@
 # Dump databases to $STORAGE_DIR/backups/ as gzipped SQL, keeping the newest
 # $BACKUP_KEEP (default 14) of each. Run nightly by fc-outreach-backup.timer,
 # or on demand from the control panel.
-#   backup.sh                   outreach database + every project database
+#   backup.sh                   outreach + fc-crm databases + every project database
 #   backup.sh outreach          only the outreach database
+#   backup.sh fc-crm            only the fc-crm database
 #   backup.sh project <slug>    only that project's database
 set -euo pipefail
 # shellcheck source=lib.sh
@@ -29,6 +30,13 @@ dump() { # <url> <file prefix>
 target="${1:-all}"
 if [ "$target" = all ] || [ "$target" = outreach ]; then
   dump "$DATABASE_URL" fc-outreach
+fi
+if [ "$target" = all ] || [ "$target" = fc-crm ]; then
+  FC_CRM_ENV=/home/perchito/fc-crm/.env
+  if [ -f "$FC_CRM_ENV" ]; then
+    FC_CRM_DB_URL="$(grep '^DATABASE_URL=' "$FC_CRM_ENV" | head -1 | cut -d= -f2-)"
+    [ -n "$FC_CRM_DB_URL" ] && dump "$FC_CRM_DB_URL" fc-crm
+  fi
 fi
 if [ "$target" = all ] || [ "$target" = project ]; then
   while read -r slug url; do

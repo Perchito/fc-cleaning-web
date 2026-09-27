@@ -40,9 +40,11 @@ const STORAGE_API_PORT = Number(process.env.STORAGE_API_PORT || 9100);
 
 // Units the panel may control. `optional` ones are shown only if installed.
 const UNITS = [
-  { unit: "fc-outreach-app", label: "Outreach app", desc: "Dashboard (/ops) + API + daily jobs" },
-  { unit: "fc-outreach-worker", label: "AI worker", desc: "Runs AI jobs through Claude Code" },
-  { unit: "postgresql", label: "PostgreSQL", desc: "Databases for outreach + projects" },
+  { unit: "fc-crm", label: "fc-crm", desc: "CRM + pipeline + campaigns (:4600), public at :443 via Funnel" },
+  { unit: "fc-crm-discover.timer", label: "fc-crm lead discovery", desc: "Daily AI lead search + drafting at 07:00" },
+  { unit: "fc-outreach-app", label: "Outreach app (retired)", desc: "Superseded by fc-crm — stopped, kept for its data/backups", optional: true },
+  { unit: "fc-outreach-worker", label: "AI worker (retired)", desc: "Superseded by fc-crm — stopped, kept for its data/backups", optional: true },
+  { unit: "postgresql", label: "PostgreSQL", desc: "Databases for outreach + fc-crm + projects" },
   { unit: "fc-storage", label: "Storage API", desc: `File storage for projects (:${process.env.STORAGE_API_PORT || 9100})` },
   { unit: "fc-outreach-backup.timer", label: "Nightly backup", desc: "pg_dump of every database at 03:00" },
   { unit: "cloudflared", label: "Cloudflare Tunnel", desc: "Public HTTPS access", optional: true },
