@@ -139,13 +139,12 @@ loaders.overview = async () => {
   const h = o.host;
   $("#hostname").textContent = h.hostname;
   $("#hostline").textContent = `${h.os} · up ${duration(h.uptime)} · ${[...h.ips, h.tailscale && `tailscale ${h.tailscale}`].filter(Boolean).join(" · ")}`;
-  const opsHost = o.opsUrl || `${location.protocol}//${location.hostname}:${o.app.port}/ops`;
-  $("#open-ops").href = opsHost;
+  $("#open-ops").href = "https://perchito.tail401924.ts.net";
 
   const memUsed = h.memTotal - h.memFree;
   const cpuPct = (h.load[0] / h.cpus) * 100;
-  const app = o.app.health;
-  let html = stat("App", app?.ok ? "Online" : "Offline", app ? `DB ${app.db ? "connected" : "unreachable"} · up ${duration(app.uptime)}` : "not responding on :" + o.app.port);
+  const appsUp = o.apps.filter((a) => a.ok).length;
+  let html = stat("Apps", `${appsUp}/${o.apps.length}`, "online — see below");
   html += stat("CPU load", h.load[0].toFixed(2), `${h.cpus} cores · ${esc(h.cpuModel.replace(/\s+/g, " ").slice(0, 32))}`, cpuPct);
   html += stat("Memory", bytes(memUsed), `of ${bytes(h.memTotal)}`, (memUsed / h.memTotal) * 100);
   for (const d of o.disks) {
@@ -153,6 +152,24 @@ loaders.overview = async () => {
   }
   html += stat("Projects", o.projects ?? 0, `<a href="#projects">databases &amp; storage for other repos</a>`);
   $("#stats").innerHTML = html;
+
+  $("#app-cards").innerHTML = o.apps
+    .map(
+      (a) => `<div class="card svc"><div class="svc-top"><span class="svc-name">${esc(a.name)}</span>${pill(a.ok ? "active" : "failed")}</div>
+        <div class="desc">${a.ok ? `responding on :${a.port}` : `not responding on :${a.port}`}</div>
+        <div class="btns"><a class="btn small ghost" href="${esc(a.publicUrl)}" target="_blank" rel="noopener">Open ↗</a></div></div>`,
+    )
+    .join("");
+
+  const sb = o.supabase;
+  $("#supabase-cards").innerHTML = sb.ok
+    ? sb.containers
+        .map(
+          (c) => `<div class="card svc"><div class="svc-top"><span class="svc-name">${esc(c.name)}</span>${pill(c.state === "running" ? "active" : c.state)}</div>
+        <div class="desc">${esc(c.health || c.state)}</div></div>`,
+        )
+        .join("")
+    : `<div class="card svc"><div class="desc">docker compose not reachable — is Docker running?</div></div>`;
 
   $("#svc-cards").innerHTML = o.services
     .map(

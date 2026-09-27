@@ -42,10 +42,14 @@ const STORAGE_API_PORT = Number(process.env.STORAGE_API_PORT || 9100);
 const UNITS = [
   { unit: "fc-crm", label: "fc-crm", desc: "CRM + pipeline + campaigns (:4600), public at :443 via Funnel" },
   { unit: "fc-crm-discover.timer", label: "fc-crm lead discovery", desc: "Daily AI lead search + drafting at 07:00" },
+  { unit: "printworks-refund-tracker", label: "Refund Tracker", desc: "Next.js app (:4700), moved off Vercel — public via gateway at /" },
+  { unit: "wedding-gallery", label: "Wedding Gallery", desc: "Next.js app (:4800), moved off Vercel — public via gateway at /wedding-gallery" },
+  { unit: "perchito-gateway", label: "Shared gateway", desc: "Path-based router (:4900) — Funnel only allows 3 public ports, so every project past the first three shares one" },
   { unit: "fc-outreach-app", label: "Outreach app (retired)", desc: "Superseded by fc-crm — stopped, kept for its data/backups", optional: true },
   { unit: "fc-outreach-worker", label: "AI worker (retired)", desc: "Superseded by fc-crm — stopped, kept for its data/backups", optional: true },
   { unit: "postgresql", label: "PostgreSQL", desc: "Databases for outreach + fc-crm + projects" },
   { unit: "perchito-storage", label: "Storage API", desc: `File storage for projects (:${process.env.STORAGE_API_PORT || 9100})` },
+  { unit: "docker", label: "Docker", desc: "Runs the self-hosted Supabase stack (wedding-gallery) — see the Supabase card below" },
   { unit: "fc-outreach-backup.timer", label: "Nightly backup", desc: "pg_dump of every database at 03:00" },
   { unit: "cloudflared", label: "Cloudflare Tunnel", desc: "Public HTTPS access", optional: true },
   { unit: "tailscaled", label: "Tailscale", desc: "Private remote access", optional: true },
@@ -185,13 +189,52 @@ async function unitStatus(u) {
   };
 }
 
+// Every web app on the box, checked by simple reachability (any HTTP
+// response, even 401/403 from an app behind Basic auth, counts as "up" —
+// only a network-level failure means "down"). Replaces the old single
+// fc-outreach-specific /healthz check now that there are several apps.
+const APPS = [
+  { name: "fc-crm", port: 4600, publicUrl: "https://perchito.tail401924.ts.net" },
+  { name: "Refund Tracker", port: 4700, publicUrl: "https://perchito.tail401924.ts.net:10000/" },
+  { name: "Wedding Gallery", port: 4800, publicUrl: "https://perchito.tail401924.ts.net:10000/wedding-gallery" },
+];
+
+async function appStatus(a) {
+  try {
+    const r = await fetch(`http://127.0.0.1:${a.port}/`, { signal: AbortSignal.timeout(3000), redirect: "manual" });
+    return { ...a, ok: true, status: r.status };
+  } catch {
+    return { ...a, ok: false, status: null };
+  }
+}
+
+// The self-hosted Supabase stack (wedding-gallery's DB/auth/storage/realtime)
+// runs under Docker Compose, not systemd — UNITS/unitStatus() can't see it.
+const SUPABASE_COMPOSE = "/home/perchito/supabase-selfhost/docker/docker-compose.yml";
+async function supabaseStatus() {
+  const r = await sh("docker", ["compose", "-f", SUPABASE_COMPOSE, "ps", "--format", "json"]);
+  if (!r.ok) return { ok: false, containers: [] };
+  const containers = r.out
+    .split("\n")
+    .filter(Boolean)
+    .map((l) => {
+      try {
+        const c = JSON.parse(l);
+        return { name: c.Service, state: c.State, health: c.Health || null };
+      } catch {
+        return null;
+      }
+    })
+    .filter(Boolean);
+  return { ok: true, containers };
+}
+
 async function overview() {
-  const [services, df, health, ts, osr] = await Promise.all([
+  const [services, df, apps, supabase, ts, osr] = await Promise.all([
     Promise.all(UNITS.map(unitStatus)),
     sh("df", ["-B1", "--output=target,size,used,avail", "/", STORAGE]),
-    fetch(`http://127.0.0.1:${APP_PORT}/healthz`, { signal: AbortSignal.timeout(3000) })
-      .then((r) => r.json())
-      .catch(() => null),
+    Promise.all(APPS.map(appStatus)),
+    supabaseStatus(),
     sh("tailscale", ["ip", "-4"]),
     readFile("/etc/os-release", "utf8").catch(() => ""),
   ]);
@@ -222,7 +265,8 @@ async function overview() {
     },
     disks,
     services: services.filter((s) => s.installed || !s.optional),
-    app: { port: APP_PORT, health },
+    apps,
+    supabase,
     projects: Object.keys((await loadProjects()).projects).length,
     opsUrl: process.env.OPS_PUBLIC_URL || null,
   };
