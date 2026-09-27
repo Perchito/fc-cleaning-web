@@ -28,11 +28,15 @@ domain existed). Each app gets its own subdomain:
 | gallery.perchito.app | 4800 | Wedding Gallery |
 | gallery-api.perchito.app | 8000 | its self-hosted Supabase API (browser-facing) |
 | storage.perchito.app | 9100 | perchito-storage (project file buckets) |
+| invoice.perchito.app | 3001 | Invoice Builder (Docker, its own SQLite data) |
 
-Tunnel config: `~/.cloudflared/config.yml` (ingress rules), managed via the
-`cloudflared` systemd unit. DNS records were created with `cloudflared
-tunnel route dns`. **The control panel itself (:8090) is deliberately not
-in the tunnel config — Tailscale-only, never public.**
+Tunnel config: `/etc/cloudflared/config.yml` (ingress rules; root-owned —
+edit with sudo), managed via the `cloudflared` systemd unit. There's also a
+`~/.cloudflared/config.yml` holding the tunnel credentials-file path, but
+the systemd unit does NOT read it — only the `/etc` copy is live. DNS
+records were created with `cloudflared tunnel route dns`. **The control
+panel itself (:8090) is deliberately not in the tunnel config —
+Tailscale-only, never public.**
 
 A **web control panel** manages all of it.
 
@@ -46,6 +50,8 @@ A **web control panel** manages all of it.
  │  fc-crm-discover.timer             daily AI lead search+drafting│
  │  printworks-refund-tracker  :4700  Next.js app, moved off Vercel│
  │  wedding-gallery            :4800  Next.js app, moved off Vercel│
+ │  invoice-builder (docker)   :3001  piratuks/invoice-builder,    │
+ │                                     own SQLite data in a volume │
  │  docker (supabase-selfhost)        wedding-gallery's DB/auth/   │
  │                                     storage/realtime — 10 ctrs  │
  │  fc-outreach-app            :4517  retired — stopped, data kept │
@@ -62,7 +68,7 @@ A **web control panel** manages all of it.
  │  /srv/fc-outreach/storage/      files/ backups/ projects/ trash/│
  │  /etc/fc-outreach/outreach.env  settings + secrets              │
  │  /etc/fc-outreach/projects.json projects, keys, DB logins       │
- │  ~/.cloudflared/config.yml      tunnel ingress rules             │
+ │  /etc/cloudflared/config.yml    tunnel ingress rules (sudo-edit)│
  └──────────────────────────────────────────────────────────────────┘
 ```
 

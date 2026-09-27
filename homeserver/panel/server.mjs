@@ -196,6 +196,7 @@ const APPS = [
   { name: "fc-crm", port: 4600, publicUrl: "https://crm.perchito.app" },
   { name: "Refund Tracker", port: 4700, publicUrl: "https://tracker.perchito.app" },
   { name: "Wedding Gallery", port: 4800, publicUrl: "https://gallery.perchito.app" },
+  { name: "Invoice Builder", port: 3001, publicUrl: "https://invoice.perchito.app" },
 ];
 
 async function appStatus(a) {
