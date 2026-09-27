@@ -56,7 +56,8 @@ A **web control panel** manages all of it.
  │                                     incl. "fc_crm" (adopted, not│
  │                                     p_-prefixed — pre-existing) │
  │  fc-outreach-backup.timer          nightly pg_dump of every DB  │
- │                                     (outreach + every project)  │
+ │                                     (outreach + every project + │
+ │                                     wedding-gallery's Docker db) │
  │                                                                  │
  │  /srv/fc-outreach/storage/      files/ backups/ projects/ trash/│
  │  /etc/fc-outreach/outreach.env  settings + secrets              │
