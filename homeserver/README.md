@@ -4,31 +4,53 @@ Turns an Ubuntu server at home into:
 
 1. **The host for fc-crm** (github.com/Perchito/fc-crm) — CRM, pipeline,
    campaigns and AI lead discovery, on its own local PostgreSQL database.
-   Publicly reachable via Tailscale Funnel. This repo's own outreach tool
-   (`/ops`, `/api/outreach`) is retired — stopped, kept installed only so
-   its data and backups aren't lost.
-2. **Database + file storage for any of your other repos** (the refund
-   tracker, the wedding gallery, etc.). In the panel, each repo gets a
-   **project** with its own PostgreSQL database and its own storage bucket
-   (a small S3-style HTTP API with keys and signed URLs). fc-crm is
-   registered as a project too, on its existing database, so its backups
-   flow through the same nightly dump as everything else.
+   This repo's own outreach tool (`/ops`, `/api/outreach`) is retired —
+   stopped, kept installed only so its data and backups aren't lost.
+2. **The host for other self-hosted apps that used to be on Vercel** —
+   the Printworks Refund Tracker (Postgres, moved off Neon) and the Wedding
+   Gallery Platform (a full self-hosted Supabase stack under Docker —
+   Postgres/Auth/REST/Realtime/Storage — moved off Supabase Cloud).
+3. **Database + file storage for any of your other repos.** In the panel,
+   each repo gets a **project** with its own PostgreSQL database and its
+   own storage bucket (a small S3-style HTTP API with keys and signed
+   URLs). fc-crm is registered as a project too, on its existing database,
+   so its backups flow through the same nightly dump as everything else.
+
+**Public access is via Cloudflare Tunnel on the perchito.app domain** — no
+port-forwarding, no static IP, and no ceiling on how many subdomains (unlike
+the Tailscale Funnel + path-prefix-gateway workaround this used before the
+domain existed). Each app gets its own subdomain:
+
+| Subdomain | -> local port | What |
+|---|---|---|
+| crm.perchito.app | 4600 | fc-crm |
+| tracker.perchito.app | 4700 | Refund Tracker |
+| gallery.perchito.app | 4800 | Wedding Gallery |
+| gallery-api.perchito.app | 8000 | its self-hosted Supabase API (browser-facing) |
+| storage.perchito.app | 9100 | perchito-storage (project file buckets) |
+
+Tunnel config: `~/.cloudflared/config.yml` (ingress rules), managed via the
+`cloudflared` systemd unit. DNS records were created with `cloudflared
+tunnel route dns`. **The control panel itself (:8090) is deliberately not
+in the tunnel config — Tailscale-only, never public.**
 
 A **web control panel** manages all of it.
 
 ```
                    Ubuntu home server ("perchito")
  ┌──────────────────────────────────────────────────────────────────┐
- │  fc-panel                   :8090  control panel (this folder)   │
- │  fc-crm                     :4600  CRM + pipeline + campaigns,   │
- │                                     public via Tailscale Funnel  │
+ │  fc-panel                   :8090  control panel — Tailscale only│
+ │  cloudflared                       perchito.app subdomains ->    │
+ │                                     local ports (table above)    │
+ │  fc-crm                     :4600  CRM + pipeline + campaigns    │
  │  fc-crm-discover.timer             daily AI lead search+drafting│
- │  printworks-refund-tracker  :4700  Next.js app, moved off       │
- │                                     Vercel; public via Funnel    │
+ │  printworks-refund-tracker  :4700  Next.js app, moved off Vercel│
+ │  wedding-gallery            :4800  Next.js app, moved off Vercel│
+ │  docker (supabase-selfhost)        wedding-gallery's DB/auth/   │
+ │                                     storage/realtime — 10 ctrs  │
  │  fc-outreach-app            :4517  retired — stopped, data kept │
  │  fc-outreach-worker                retired — stopped, data kept │
  │  perchito-storage           :9100  storage API: /v1/<project>/… │
- │                                     public via Funnel (:8443)    │
  │  postgresql                 :5432  "fc_outreach" + one database │
  │                                     per project (p_<project>),  │
  │                                     incl. "fc_crm" (adopted, not│
@@ -39,6 +61,7 @@ A **web control panel** manages all of it.
  │  /srv/fc-outreach/storage/      files/ backups/ projects/ trash/│
  │  /etc/fc-outreach/outreach.env  settings + secrets              │
  │  /etc/fc-outreach/projects.json projects, keys, DB logins       │
+ │  ~/.cloudflared/config.yml      tunnel ingress rules             │
  └──────────────────────────────────────────────────────────────────┘
 ```
 
@@ -81,14 +104,16 @@ You can re-run the installer at any time. It keeps your database, settings and f
 
 ## Using it for your other repos
 
-Panel → **Projects** → **New project**, e.g. "Wedding gallery". Tick a database,
-a storage bucket, or both. Click **Connect** to get ready-to-paste environment
-variables:
+Panel → **Projects** → **New project**, e.g. "My other app" (illustrative name
+below — wedding-gallery-platform is a real project on this box already, using
+self-hosted Supabase instead of this pattern, see the table above). Tick a
+database, a storage bucket, or both. Click **Connect** to get ready-to-paste
+environment variables:
 
 ```
-DATABASE_URL=postgresql://p_wedding_gallery:…@192.168.1.20:5432/p_wedding_gallery
+DATABASE_URL=postgresql://p_my_other_app:…@192.168.1.20:5432/p_my_other_app
 HOME_STORAGE_URL=http://192.168.1.20:9100
-HOME_STORAGE_PROJECT=wedding-gallery
+HOME_STORAGE_PROJECT=my-other-app
 HOME_STORAGE_KEY=hs_…
 ```
 

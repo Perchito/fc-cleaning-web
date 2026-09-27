@@ -139,7 +139,7 @@ loaders.overview = async () => {
   const h = o.host;
   $("#hostname").textContent = h.hostname;
   $("#hostline").textContent = `${h.os} · up ${duration(h.uptime)} · ${[...h.ips, h.tailscale && `tailscale ${h.tailscale}`].filter(Boolean).join(" · ")}`;
-  $("#open-ops").href = "https://perchito.tail401924.ts.net";
+  $("#open-ops").href = "https://crm.perchito.app";
 
   const memUsed = h.memTotal - h.memFree;
   const cpuPct = (h.load[0] / h.cpus) * 100;
