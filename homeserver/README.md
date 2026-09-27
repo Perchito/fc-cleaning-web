@@ -18,25 +18,28 @@ A **web control panel** manages all of it.
 
 ```
                    Ubuntu home server ("perchito")
- ┌──────────────────────────────────────────────────────────────┐
- │  fc-panel            :8090   control panel (this folder)     │
- │  fc-crm              :4600   CRM + pipeline + campaigns,     │
- │                              public via Tailscale Funnel     │
- │  fc-crm-discover.timer       daily AI lead search + drafting │
- │  fc-outreach-app     :4517   retired — stopped, data kept    │
- │  fc-outreach-worker          retired — stopped, data kept    │
- │  fc-storage          :9100   storage API: /v1/<project>/…    │
- │  postgresql          :5432   "fc_outreach" + one database    │
- │                              per project (p_<project>),      │
- │                              incl. "fc_crm" (adopted, not    │
- │                              p_-prefixed — pre-existing)      │
- │  fc-outreach-backup.timer    nightly pg_dump of every DB     │
- │                              (outreach + every project)      │
- │                                                              │
- │  /srv/fc-outreach/storage/   files/ backups/ projects/ trash/│
- │  /etc/fc-outreach/outreach.env   settings + secrets          │
- │  /etc/fc-outreach/projects.json  projects, keys, DB logins   │
- └──────────────────────────────────────────────────────────────┘
+ ┌──────────────────────────────────────────────────────────────────┐
+ │  fc-panel                   :8090  control panel (this folder)   │
+ │  fc-crm                     :4600  CRM + pipeline + campaigns,   │
+ │                                     public via Tailscale Funnel  │
+ │  fc-crm-discover.timer             daily AI lead search+drafting│
+ │  printworks-refund-tracker  :4700  Next.js app, moved off       │
+ │                                     Vercel; public via Funnel    │
+ │  fc-outreach-app            :4517  retired — stopped, data kept │
+ │  fc-outreach-worker                retired — stopped, data kept │
+ │  perchito-storage           :9100  storage API: /v1/<project>/… │
+ │                                     public via Funnel (:8443)    │
+ │  postgresql                 :5432  "fc_outreach" + one database │
+ │                                     per project (p_<project>),  │
+ │                                     incl. "fc_crm" (adopted, not│
+ │                                     p_-prefixed — pre-existing) │
+ │  fc-outreach-backup.timer          nightly pg_dump of every DB  │
+ │                                     (outreach + every project)  │
+ │                                                                  │
+ │  /srv/fc-outreach/storage/      files/ backups/ projects/ trash/│
+ │  /etc/fc-outreach/outreach.env  settings + secrets              │
+ │  /etc/fc-outreach/projects.json projects, keys, DB logins       │
+ └──────────────────────────────────────────────────────────────────┘
 ```
 
 ## Install (about 5 minutes)
@@ -140,7 +143,7 @@ one (`project-<id>-<date>.sql.gz`). **Restore** in the panel puts a backup back
 into the database it came from. Bucket files are plain files under
 `/srv/fc-outreach/storage/projects/<id>/`. Copy that folder to a second disk
 or cloud drive if losing them would hurt, for example:
-`rsync -a /srv/fc-outreach/storage/ /mnt/usb-backup/fc-storage/` from a daily cron.
+`rsync -a /srv/fc-outreach/storage/ /mnt/usb-backup/perchito-storage/` from a daily cron.
 
 **Deleting a project** asks you to type its id. It takes a final database
 backup, drops the database and login, and moves the bucket to

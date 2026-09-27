@@ -45,7 +45,7 @@ const UNITS = [
   { unit: "fc-outreach-app", label: "Outreach app (retired)", desc: "Superseded by fc-crm — stopped, kept for its data/backups", optional: true },
   { unit: "fc-outreach-worker", label: "AI worker (retired)", desc: "Superseded by fc-crm — stopped, kept for its data/backups", optional: true },
   { unit: "postgresql", label: "PostgreSQL", desc: "Databases for outreach + fc-crm + projects" },
-  { unit: "fc-storage", label: "Storage API", desc: `File storage for projects (:${process.env.STORAGE_API_PORT || 9100})` },
+  { unit: "perchito-storage", label: "Storage API", desc: `File storage for projects (:${process.env.STORAGE_API_PORT || 9100})` },
   { unit: "fc-outreach-backup.timer", label: "Nightly backup", desc: "pg_dump of every database at 03:00" },
   { unit: "cloudflared", label: "Cloudflare Tunnel", desc: "Public HTTPS access", optional: true },
   { unit: "tailscaled", label: "Tailscale", desc: "Private remote access", optional: true },

@@ -10,7 +10,7 @@
 #   - storage at /srv/fc-outreach/storage (files/ + backups/ + projects/)
 #   - systemd services: fc-outreach-app (dashboard + API, :4517),
 #     fc-outreach-worker (AI via Claude Code), fc-panel (control panel, :8090),
-#     fc-storage (storage API for project buckets, :9100),
+#     perchito-storage (storage API for project buckets, :9100),
 #     fc-outreach-backup.timer (nightly pg_dump of every database)
 #   - a Postgres admin role the panel uses to create a database per project
 #   - /etc/fc-outreach/outreach.env with generated passwords/secrets
@@ -276,7 +276,7 @@ RestartSec=3
 WantedBy=multi-user.target
 EOF
 
-cat > /etc/systemd/system/fc-storage.service <<EOF
+cat > /etc/systemd/system/perchito-storage.service <<EOF
 [Unit]
 Description=Perchito's Server storage API (project buckets)
 After=network-online.target
@@ -324,7 +324,7 @@ SYSTEMCTL="$(command -v systemctl)"
   # fc-crm and fc-crm-discover.timer: that repo/its systemd units are installed
   # separately (github.com/Perchito/fc-crm, not by this script) — granted here
   # so the panel can control them once they exist.
-  for u in fc-outreach-app fc-outreach-worker fc-crm fc-crm-discover.timer fc-panel fc-storage postgresql fc-outreach-backup.timer cloudflared tailscaled; do
+  for u in fc-outreach-app fc-outreach-worker fc-crm fc-crm-discover.timer fc-panel perchito-storage postgresql fc-outreach-backup.timer cloudflared tailscaled; do
     for a in start stop restart enable disable; do
       echo "$APP_USER ALL=(root) NOPASSWD: $SYSTEMCTL $a $u"
     done
@@ -340,9 +340,9 @@ mv /etc/sudoers.d/fc-outreach.tmp /etc/sudoers.d/fc-outreach
 echo "ok"
 
 systemctl daemon-reload
-systemctl enable --now fc-outreach-app fc-panel fc-storage fc-outreach-backup.timer >/dev/null
+systemctl enable --now fc-outreach-app fc-panel perchito-storage fc-outreach-backup.timer >/dev/null
 systemctl enable fc-outreach-worker >/dev/null
-systemctl restart fc-outreach-app fc-panel fc-storage
+systemctl restart fc-outreach-app fc-panel perchito-storage
 if as_user env PATH="$USER_PATH" bash -c 'command -v claude' >/dev/null; then
   systemctl restart fc-outreach-worker
   WORKER_NOTE="running"

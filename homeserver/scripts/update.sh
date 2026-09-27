@@ -26,6 +26,6 @@ PGOPTIONS="-c client_min_messages=warning" psql -v ON_ERROR_STOP=1 --quiet "$DAT
 
 echo "→ restart services"
 sudo -n systemctl restart fc-outreach-app fc-outreach-worker
-sudo -n systemctl restart fc-storage
+sudo -n systemctl restart perchito-storage
 echo "done — the panel restarts itself next"
 sudo -n systemctl restart --no-block fc-panel
