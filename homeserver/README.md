@@ -29,6 +29,13 @@ domain existed). Each app gets its own subdomain:
 | gallery-api.perchito.app | 8000 | its self-hosted Supabase API (browser-facing) |
 | storage.perchito.app | 9100 | perchito-storage (project file buckets) |
 | invoice.perchito.app | 3001 | Invoice Builder (Docker, its own SQLite data) |
+| sign.fccleaningcompany.com | 3002 | DocuSeal (Docker, `~/docuseal/`) — **separate tunnel**, see below |
+
+sign.fccleaningcompany.com's zone lives in a *different* Cloudflare account,
+which can't CNAME to this account's tunnel (error 1014). So DocuSeal's
+compose file runs its own dashboard-managed `cloudflared` (token in
+`~/docuseal/.env`); its hostname routing is edited in that account's Zero
+Trust dashboard, not in `/etc/cloudflared/config.yml`.
 
 Tunnel config: `/etc/cloudflared/config.yml` (ingress rules; root-owned —
 edit with sudo), managed via the `cloudflared` systemd unit. There's also a
@@ -52,6 +59,7 @@ A **web control panel** manages all of it.
  │  wedding-gallery            :4800  Next.js app, moved off Vercel│
  │  invoice-builder (docker)   :3001  piratuks/invoice-builder,    │
  │                                     own SQLite data in a volume │
+ │  docuseal (docker)          :3002  e-signing + its own tunnel   │
  │  docker (supabase-selfhost)        wedding-gallery's DB/auth/   │
  │                                     storage/realtime — 10 ctrs  │
  │  fc-outreach-app            :4517  retired — stopped, data kept │
