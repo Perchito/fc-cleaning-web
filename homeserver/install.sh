@@ -302,6 +302,9 @@ After=postgresql.service
 [Service]
 Type=oneshot
 User=$APP_USER
+# back up after the night's lead discovery (01:00, runs until ~07:00) has finished
+ExecStartPre=/bin/sh -c 'while [ "\$\$(systemctl show -p ActiveState --value fc-crm-discover.service)" = activating ]; do sleep 60; done'
+TimeoutStartSec=6h
 ExecStart=$REPO/homeserver/scripts/backup.sh
 EOF
 
@@ -310,7 +313,7 @@ cat > /etc/systemd/system/fc-outreach-backup.timer <<EOF
 Description=Nightly FC Outreach database backup
 
 [Timer]
-OnCalendar=*-*-* 03:00:00
+OnCalendar=*-*-* 07:15:00
 Persistent=true
 
 [Install]

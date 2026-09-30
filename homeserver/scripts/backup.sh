@@ -57,20 +57,29 @@ dump_docuseal() {
   rotate docuseal .tar.gz
 }
 
+# Each backup is independent: one failing (e.g. a stopped container) must not
+# skip the rest. The script still exits non-zero so the failure shows in systemd.
+failed=0
+try() { "$@" || { echo "backup FAILED: $*" >&2; failed=1; }; }
+running() { [ "$(docker inspect -f '{{.State.Running}}' "$1" 2>/dev/null)" = true ]; }
+
 target="${1:-all}"
 if [ "$target" = all ] || [ "$target" = outreach ]; then
-  dump "$DATABASE_URL" fc-outreach
+  try dump "$DATABASE_URL" fc-outreach
 fi
-if [ "$target" = all ] || [ "$target" = wedding-gallery ]; then
-  dump_docker supabase-db postgres postgres wedding-gallery
+if [ "$target" = wedding-gallery ] || { [ "$target" = all ] && running supabase-db; }; then
+  try dump_docker supabase-db postgres postgres wedding-gallery
+elif [ "$target" = all ]; then
+  echo "skipped wedding-gallery: supabase-db not running"
 fi
 if [ "$target" = all ] || [ "$target" = docuseal ]; then
-  dump_docuseal
+  try dump_docuseal
 fi
 if [ "$target" = all ] || [ "$target" = project ]; then
   while read -r slug url; do
     [ -n "$slug" ] || continue
     if [ "$target" = project ] && [ "$slug" != "${2:-}" ]; then continue; fi
-    dump "$url" "project-$slug"
+    try dump "$url" "project-$slug"
   done < <(project_dbs)
 fi
+exit "$failed"
