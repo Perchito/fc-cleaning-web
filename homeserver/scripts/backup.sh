@@ -126,4 +126,19 @@ if [ "$target" = all ] || [ "$target" = project ]; then
     try dump "$url" "project-$slug"
   done < <(project_dbs)
 fi
+
+# Offsite copy (Backblaze B2, bucket perchito-backups-fc, remote "b2" in
+# ~/.config/rclone/rclone.conf). The server's key is bucket-only and can't
+# delete; bucket-side rules do the cleanup: 30-day governance lock on every
+# upload, nightly/ hidden after 31 days, files/ keeps deleted/replaced
+# versions for 30 days. copy (not sync) for nightly/, so local rotation
+# never removes anything offsite.
+RCLONE="${RCLONE:-$(command -v rclone || echo "$HOME/.local/bin/rclone")}"
+OFFSITE="${BACKUP_OFFSITE:-b2:perchito-backups-fc}"
+if [ "$target" = all ] && [ -x "$RCLONE" ] && "$RCLONE" listremotes 2>/dev/null | grep -qx "${OFFSITE%%:*}:"; then
+  try "$RCLONE" copy "$DIR" "$OFFSITE/nightly" --no-traverse --max-age 2d
+  try "$RCLONE" sync "${STORAGE_DIR:-/srv/fc-outreach/storage}/projects" "$OFFSITE/files/projects"
+  try "$RCLONE" sync "${STORAGE_DIR:-/srv/fc-outreach/storage}/files" "$OFFSITE/files/files"
+  [ "$failed" = 0 ] && echo "offsite copy done: $OFFSITE"
+fi
 exit "$failed"
