@@ -6,6 +6,9 @@
 #   backup.sh outreach          only the outreach database
 #   backup.sh wedding-gallery   only the self-hosted Supabase stack's db
 #   backup.sh docuseal          only DocuSeal's /data (SQLite + attachments)
+#   backup.sh invoice-builder   only invoice-builder's /data (SQLite)
+#   backup.sh frappe-hr         only Frappe HR (bench backup: db + files)
+#   backup.sh config            compose files, patches, .env secrets, tunnel config
 #   backup.sh project <slug>    only that project's database (fc-crm, etc.)
 set -euo pipefail
 # shellcheck source=lib.sh
@@ -57,6 +60,38 @@ dump_docuseal() {
   rotate docuseal .tar.gz
 }
 
+# ponytail: tar of a live SQLite file (no sqlite3 in the image); fine at 07:15 when nobody is invoicing
+dump_invoice() {
+  local out="$DIR/invoice-builder-$STAMP.tar.gz"
+  docker exec invoice-builder tar -czf - -C /data . > "$out.part" || { rm -f "$out.part"; return 1; }
+  mv "$out.part" "$out"
+  echo "backup written: $out ($(du -h "$out" | cut -f1))"
+  rotate invoice-builder .tar.gz
+}
+# Frappe's own backup (db + uploaded files), restorable with `bench restore`.
+dump_frappe_hr() {
+  local c=frappe-hr-backend-1 tmp=/tmp/nightly-backup out="$DIR/frappe-hr-$STAMP.tar"
+  docker exec "$c" sh -c "rm -rf $tmp && bench --site hr.fccleaningcompany.com backup --with-files --backup-path $tmp >/dev/null" || return 1
+  docker exec "$c" tar -cf - -C "$tmp" . > "$out.part" || { rm -f "$out.part"; return 1; }
+  docker exec "$c" rm -rf "$tmp"
+  mv "$out.part" "$out"
+  echo "backup written: $out ($(du -h "$out" | cut -f1))"
+  rotate frappe-hr .tar
+}
+# Compose files, local patches and .env secrets for the docker apps, plus the
+# tunnel/project config: what's needed to rebuild the box, not app data.
+dump_config() {
+  local out="$DIR/config-$STAMP.tar.gz"
+  tar -czf "$out.part" --ignore-failed-read --exclude='*.bak*' --exclude=docuseal/data -C / \
+    home/perchito/invoice-builder home/perchito/docuseal home/perchito/frappe-hr \
+    home/perchito/fc-crm/.env home/perchito/supabase-selfhost/docker/.env \
+    home/perchito/wedding-gallery-platform/.env.production.local \
+    home/perchito/.cloudflared etc/fc-outreach etc/cloudflared/config.yml 2>/dev/null || { rm -f "$out.part"; return 1; }
+  mv "$out.part" "$out"
+  echo "backup written: $out ($(du -h "$out" | cut -f1))"
+  rotate config .tar.gz
+}
+
 # Each backup is independent: one failing (e.g. a stopped container) must not
 # skip the rest. The script still exits non-zero so the failure shows in systemd.
 failed=0
@@ -74,6 +109,15 @@ elif [ "$target" = all ]; then
 fi
 if [ "$target" = all ] || [ "$target" = docuseal ]; then
   try dump_docuseal
+fi
+if [ "$target" = all ] || [ "$target" = invoice-builder ]; then
+  try dump_invoice
+fi
+if [ "$target" = all ] || [ "$target" = frappe-hr ]; then
+  try dump_frappe_hr
+fi
+if [ "$target" = all ] || [ "$target" = config ]; then
+  try dump_config
 fi
 if [ "$target" = all ] || [ "$target" = project ]; then
   while read -r slug url; do
