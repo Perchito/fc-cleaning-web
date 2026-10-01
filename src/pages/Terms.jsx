@@ -181,8 +181,8 @@ export default function Terms() {
                     fernando.c@fccleaningcompany.com
                   </a>
                   <br />
-                  <a href="tel:01613990482" className="text-teal-600 hover:text-teal-500">
-                    0161 399 0482
+                  <a href="tel:+447337397269" className="text-teal-600 hover:text-teal-500">
+                    +44 7337 397269
                   </a>
                   <br />
                   Manchester, United Kingdom

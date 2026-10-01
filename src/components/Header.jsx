@@ -99,8 +99,8 @@ export default function Header() {
           </nav>
 
           <div className="hidden items-center gap-5 lg:flex">
-            <a href="tel:01613990482" className="text-sm font-bold text-white transition-colors hover:text-teal-300">
-              0161 399 0482
+            <a href="tel:+447337397269" className="text-sm font-bold text-white transition-colors hover:text-teal-300">
+              +44 7337 397269
             </a>
             <QuoteButton />
           </div>
@@ -148,8 +148,8 @@ export default function Header() {
                 </Link>
               ))}
               <div className="flex items-center gap-4 px-3 pt-4">
-                <a href="tel:01613990482" className="text-sm font-bold text-white">
-                  0161 399 0482
+                <a href="tel:+447337397269" className="text-sm font-bold text-white">
+                  +44 7337 397269
                 </a>
                 <QuoteButton onClick={() => setOpen(false)} />
               </div>

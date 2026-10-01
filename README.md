@@ -33,7 +33,7 @@ Output goes to `dist/` — deployable to Vercel (vercel.json SPA rewrite include
 - [x] FAQ (categorised accordion, filter tabs, contact sidebar)
 - [x] Contact Us (enquiry form → Formspree, contact sidebar, what-to-expect)
 - [x] Thank-you (form confirmation)
-- [x] Floating WhatsApp button (wa.me/447473379928, prefilled message)
+- [x] Floating WhatsApp button (wa.me/447337397269, prefilled message)
 - [x] Privacy / Terms
 - [ ] 404 page (unknown routes currently fall through to Home)
 
@@ -69,4 +69,4 @@ Tips:
 ## Notes
 
 - Contact form is wired to Formspree (`mzdjyqnv`) — first submission sends a verification email to the recipient address; confirm it once and enquiries flow to the inbox
-- Floating WhatsApp button opens a chat to 07473 379928 with a prefilled quote request (edit `WHATSAPP_URL` in `src/components/WhatsAppFloat.jsx` to change it)
+- Floating WhatsApp button opens a chat to +44 7337 397269 with a prefilled quote request (edit `WHATSAPP_URL` in `src/components/WhatsAppFloat.jsx` to change it)

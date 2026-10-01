@@ -167,12 +167,12 @@ export default function Services() {
           Get a Free Quote
         </AnimatedLink>
         <animated.a
-          href="tel:01613990482"
+          href="tel:+447337397269"
           style={ghostStyle}
           {...ghostBind}
           className="inline-flex items-center rounded-full border border-white/20 px-7 py-3.5 text-sm font-bold text-white transition-colors hover:border-teal-300 hover:text-teal-300"
         >
-          0161 399 0482
+          +44 7337 397269
         </animated.a>
       </PageHero>
 

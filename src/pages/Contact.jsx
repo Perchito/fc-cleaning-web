@@ -126,7 +126,7 @@ export default function Contact() {
 
               {status === 'error' ? (
                 <p className="mt-5 rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm font-semibold text-red-700">
-                  Something went wrong — please call us on 0161 399 0482 or email fernando.c@fccleaningcompany.com.
+                  Something went wrong — please call us on +44 7337 397269 or email fernando.c@fccleaningcompany.com.
                 </p>
               ) : null}
 
@@ -155,8 +155,8 @@ export default function Contact() {
                 <ul className="mt-6 space-y-5">
                   <li>
                     <p className="text-xs font-extrabold uppercase tracking-[0.2em] text-teal-400">Phone</p>
-                    <a href="tel:01613990482" className="mt-1 block text-base font-bold text-white transition-colors hover:text-teal-300">
-                      0161 399 0482
+                    <a href="tel:+447337397269" className="mt-1 block text-base font-bold text-white transition-colors hover:text-teal-300">
+                      +44 7337 397269
                     </a>
                     <p className="text-xs text-navy-300">Mon–Sun, early mornings to late evenings</p>
                   </li>
@@ -172,7 +172,7 @@ export default function Contact() {
                   <li>
                     <p className="text-xs font-extrabold uppercase tracking-[0.2em] text-teal-400">WhatsApp</p>
                     <a
-                      href="https://wa.me/447473379928"
+                      href="https://wa.me/447337397269"
                       target="_blank"
                       rel="noreferrer"
                       className="mt-1 inline-flex items-center gap-2 text-base font-bold text-white transition-colors hover:text-teal-300"

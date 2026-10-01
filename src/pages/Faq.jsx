@@ -31,7 +31,7 @@ const FAQS = [
   {
     category: 'Services',
     q: 'How do I get started?',
-    a: "Simply fill in our contact form or call 0161 399 0482. Tell us about your venue and we'll get back to you within 48 hours with a tailored proposal.",
+    a: "Simply fill in our contact form or call +44 7337 397269. Tell us about your venue and we'll get back to you within 48 hours with a tailored proposal.",
   },
   {
     category: 'Coverage & Hours',
@@ -46,7 +46,7 @@ const FAQS = [
   {
     category: 'Pricing & Contracts',
     q: 'How quickly can you give me a quote?',
-    a: "We typically respond to all enquiries within 48 hours. For urgent requirements, call us directly on 0161 399 0482. Quotes are always free and there's no obligation.",
+    a: "We typically respond to all enquiries within 48 hours. For urgent requirements, call us directly on +44 7337 397269. Quotes are always free and there's no obligation.",
   },
   {
     category: 'Pricing & Contracts',
@@ -121,12 +121,12 @@ function Sidebar() {
             Send us a message
           </AnimatedLink>
           <animated.a
-            href="tel:01613990482"
+            href="tel:+447337397269"
             style={telStyle}
             {...telBind}
             className="flex items-center justify-center rounded-full border border-white/20 px-6 py-3 text-sm font-bold text-white transition-colors hover:border-teal-300 hover:text-teal-300"
           >
-            0161 399 0482
+            +44 7337 397269
           </animated.a>
         </div>
       </div>

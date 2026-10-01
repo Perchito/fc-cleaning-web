@@ -70,8 +70,8 @@ export default function Footer() {
           <h3 className="text-xs font-extrabold uppercase tracking-[0.2em] text-teal-400">Get in Touch</h3>
           <ul className="mt-4 space-y-2.5 text-sm text-navy-200">
             <li>
-              <a href="tel:01613990482" className="font-bold text-white transition-colors hover:text-teal-300">
-                0161 399 0482
+              <a href="tel:+447337397269" className="font-bold text-white transition-colors hover:text-teal-300">
+                +44 7337 397269
               </a>
             </li>
             <li>
