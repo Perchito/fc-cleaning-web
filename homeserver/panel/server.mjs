@@ -42,15 +42,17 @@ const STORAGE_API_PORT = Number(process.env.STORAGE_API_PORT || 9100);
 const UNITS = [
   { unit: "fc-crm", label: "fc-crm", desc: "CRM + pipeline + campaigns (:4600), public at crm.perchito.app" },
   { unit: "fc-crm-discover.timer", label: "fc-crm lead discovery", desc: "Daily AI lead search + drafting at 07:00" },
+  { unit: "mc-crm", label: "mc-crm", desc: "Luis's web design outreach CRM (:4610), public at mc.perchito.app" },
+  { unit: "mc-crm-discover.timer", label: "mc-crm lead discovery", desc: "Nightly 01:30: finds West London businesses, audits their websites, drafts emails" },
   { unit: "printworks-refund-tracker", label: "Refund Tracker", desc: "Next.js app (:4700), moved off Vercel — public at tracker.perchito.app" },
   { unit: "wedding-gallery", label: "Wedding Gallery", desc: "Next.js app (:4800), moved off Vercel — public at gallery.perchito.app" },
   { unit: "fc-outreach-app", label: "Outreach app (retired)", desc: "Superseded by fc-crm — stopped, kept for its data/backups", optional: true },
   { unit: "fc-outreach-worker", label: "AI worker (retired)", desc: "Superseded by fc-crm — stopped, kept for its data/backups", optional: true },
-  { unit: "postgresql", label: "PostgreSQL", desc: "Databases for outreach + fc-crm + projects" },
+  { unit: "postgresql", label: "PostgreSQL", desc: "Databases for outreach + fc-crm + mc-crm + projects" },
   { unit: "perchito-storage", label: "Storage API", desc: `File storage for projects (:${process.env.STORAGE_API_PORT || 9100}), public at storage.perchito.app` },
   { unit: "docker", label: "Docker", desc: "Runs the self-hosted Supabase stack (wedding-gallery) — see the Supabase card below" },
   { unit: "fc-outreach-backup.timer", label: "Nightly backup", desc: "pg_dump of every database at 03:00" },
-  { unit: "cloudflared", label: "Cloudflare Tunnel", desc: "perchito.app subdomains -> local ports (crm/tracker/gallery/gallery-api/storage)" },
+  { unit: "cloudflared", label: "Cloudflare Tunnel", desc: "perchito.app subdomains -> local ports (crm/mc/tracker/gallery/gallery-api/storage/invoice)" },
   { unit: "tailscaled", label: "Tailscale", desc: "Private remote access (admin panel stays Tailscale-only, never public)" },
 ];
 const UNIT_NAMES = new Set(UNITS.map((u) => u.unit));
@@ -194,6 +196,7 @@ async function unitStatus(u) {
 // fc-outreach-specific /healthz check now that there are several apps.
 const APPS = [
   { name: "fc-crm", port: 4600, publicUrl: "https://crm.perchito.app" },
+  { name: "mc-crm", port: 4610, publicUrl: "https://mc.perchito.app" },
   { name: "Refund Tracker", port: 4700, publicUrl: "https://tracker.perchito.app" },
   { name: "Wedding Gallery", port: 4800, publicUrl: "https://gallery.perchito.app" },
   { name: "Invoice Builder", port: 3001, publicUrl: "https://invoice.perchito.app" },
