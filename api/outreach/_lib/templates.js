@@ -32,7 +32,7 @@ export function draftFollowUp(p, round = 1) {
           ``,
           `I don't want to keep landing in your inbox, so this is the last time I'll follow up.`,
           ``,
-          `If ${hook} is something you'd want a price on at any point, just reply and I'll turn a free written quote around within 24 hours. Otherwise I'll leave it with you.`,
+          `If ${hook} is something you'd want a price on at any point, just reply and I'll turn a free written quote around within 48 hours. Otherwise I'll leave it with you.`,
           footer(),
         ]
       : [
@@ -40,7 +40,7 @@ export function draftFollowUp(p, round = 1) {
           ``,
           `Just floating this back up in case it got buried — I wrote last week about ${hook}.`,
           ``,
-          `No pressure at all. If it's worth a quick look round, I can send a free written quote within 24 hours. If the timing's wrong, let me know and I'll check back later in the year.`,
+          `No pressure at all. If it's worth a quick look round, I can send a free written quote within 48 hours. If the timing's wrong, let me know and I'll check back later in the year.`,
           footer(),
         ];
 
@@ -57,7 +57,7 @@ export function draftInitial(p) {
     ``,
     `I'm reaching out about ${hook}. We work around service with early-morning or post-close slots, we're fully insured, and every job is checked by me personally.`,
     ``,
-    `If it's useful I can send a free written quote within 24 hours — would a quick look round work in the next week or two?`,
+    `If it's useful I can send a free written quote within 48 hours — would a quick look round work in the next week or two?`,
     footer(),
   ];
   return { subject: `Cleaning for ${p.business}`, text: body.join("\n") };

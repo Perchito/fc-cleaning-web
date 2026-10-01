@@ -31,7 +31,7 @@ const FAQS = [
   {
     category: 'Services',
     q: 'How do I get started?',
-    a: "Simply fill in our contact form or call 0161 399 0482. Tell us about your venue and we'll get back to you within 24 hours with a tailored proposal.",
+    a: "Simply fill in our contact form or call 0161 399 0482. Tell us about your venue and we'll get back to you within 48 hours with a tailored proposal.",
   },
   {
     category: 'Coverage & Hours',
@@ -46,7 +46,7 @@ const FAQS = [
   {
     category: 'Pricing & Contracts',
     q: 'How quickly can you give me a quote?',
-    a: "We typically respond to all enquiries within 24 hours. For urgent requirements, call us directly on 0161 399 0482. Quotes are always free and there's no obligation.",
+    a: "We typically respond to all enquiries within 48 hours. For urgent requirements, call us directly on 0161 399 0482. Quotes are always free and there's no obligation.",
   },
   {
     category: 'Pricing & Contracts',
@@ -110,7 +110,7 @@ function Sidebar() {
     <aside className="lg:sticky lg:top-28">
       <div className="rounded-3xl bg-navy-950 p-8 text-white shadow-xl shadow-navy-950/20">
         <h2 className="text-2xl font-extrabold tracking-tight">Still have a question?</h2>
-        <p className="mt-3 text-sm leading-relaxed text-navy-200">Get in touch — we reply within 24 hours</p>
+        <p className="mt-3 text-sm leading-relaxed text-navy-200">Get in touch — we reply within 48 hours</p>
         <div className="mt-6 space-y-3">
           <AnimatedLink
             to="/contact"

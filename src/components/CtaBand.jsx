@@ -5,7 +5,7 @@ import useHoverSpring from '../hooks/useHoverSpring.js'
 
 const AnimatedLink = animated(Link)
 
-const CHIPS = ['Free quote, no obligation', 'Reply within 24 hours', 'Fully insured', 'Owner-managed']
+const CHIPS = ['Free quote, no obligation', 'Reply within 48 hours', 'Fully insured', 'Owner-managed']
 
 export default function CtaBand() {
   const [primaryStyle, primaryBind] = useHoverSpring(1.05)

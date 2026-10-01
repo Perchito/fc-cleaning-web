@@ -120,7 +120,7 @@ export default function Hero() {
             style={floatCard}
             className="absolute -bottom-6 left-6 rounded-2xl border border-white/10 bg-navy-900/90 px-5 py-4 shadow-xl backdrop-blur"
           >
-            <p className="text-2xl font-extrabold text-teal-400">24h</p>
+            <p className="text-2xl font-extrabold text-teal-400">48h</p>
             <p className="text-xs font-semibold text-navy-200">Typical quote turnaround</p>
           </animated.div>
         </animated.div>

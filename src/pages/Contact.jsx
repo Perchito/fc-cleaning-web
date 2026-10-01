@@ -18,7 +18,7 @@ const SERVICES = [
 ]
 
 const EXPECTATIONS = [
-  'We reply to all enquiries within 24 hours',
+  'We reply to all enquiries within 48 hours',
   'Free, no-obligation quote tailored to your venue',
   'You speak directly to the owner — always',
   'Fully insured on every job',
@@ -72,7 +72,7 @@ export default function Contact() {
       <PageHero
         eyebrow="Get in Touch"
         title="Get a free cleaning quote"
-        sub="Tell us about your venue and we'll put together a tailored proposal within 24 hours. No obligation, no call centres."
+        sub="Tell us about your venue and we'll put together a tailored proposal within 48 hours. No obligation, no call centres."
       />
 
       <section className="bg-navy-50 py-20 lg:py-28">
@@ -140,7 +140,7 @@ export default function Contact() {
                 {status === 'sending' ? 'Sending…' : 'Send my enquiry'}
               </animated.button>
               <p className="mt-4 text-xs font-semibold text-navy-400">
-                We reply within 24 hours • Your data is never shared •{' '}
+                We reply within 48 hours • Your data is never shared •{' '}
                 <Link to="/privacy" className="text-teal-600 transition-colors hover:text-teal-500">
                   Privacy Policy
                 </Link>

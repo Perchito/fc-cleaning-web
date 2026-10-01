@@ -151,7 +151,7 @@ const BRAND = `FC Cleaning Company Ltd — owner-managed commercial cleaning for
 restaurants, pubs, bars, cafés and small hotels across Greater Manchester and
 the North West. Fully insured; early-morning or post-close slots so work never
 clashes with service; every job personally checked by the owner. Free written
-quote within 24 hours. Sender: ${config.senderFirstName} (${config.senderTitle}).`;
+quote within 48 hours. Sender: ${config.senderFirstName} (${config.senderTitle}).`;
 
 export function draftSpec(prospect, step = {}, { round = 1 } = {}) {
   const research = prospect.research
