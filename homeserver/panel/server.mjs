@@ -52,7 +52,7 @@ const UNITS = [
   { unit: "perchito-storage", label: "Storage API", desc: `File storage for projects (:${process.env.STORAGE_API_PORT || 9100}), public at storage.perchito.app` },
   { unit: "docker", label: "Docker", desc: "Runs the self-hosted Supabase stack (wedding-gallery) — see the Supabase card below" },
   { unit: "fc-outreach-backup.timer", label: "Nightly backup", desc: "pg_dump of every database at 03:00" },
-  { unit: "cloudflared", label: "Cloudflare Tunnel", desc: "perchito.app subdomains -> local ports (crm/mc/tracker/gallery/gallery-api/storage/invoice)" },
+  { unit: "cloudflared", label: "Cloudflare Tunnel", desc: "perchito.app subdomains -> local ports (crm/mc/tracker/gallery/gallery-api/storage/invoice); fccleaningcompany.com (sign/hr/book) uses the docuseal tunnel" },
   { unit: "tailscaled", label: "Tailscale", desc: "Private remote access (admin panel stays Tailscale-only, never public)" },
 ];
 const UNIT_NAMES = new Set(UNITS.map((u) => u.unit));
@@ -195,9 +195,10 @@ async function unitStatus(u) {
 // only a network-level failure means "down"). Replaces the old single
 // fc-outreach-specific /healthz check now that there are several apps.
 const APPS = [
-  { name: "fc-crm", port: 4600, publicUrl: "https://crm.perchito.app" },
-  { name: "mc-crm", port: 4610, publicUrl: "https://mc.perchito.app" },
-  { name: "Refund Tracker", port: 4700, publicUrl: "https://tracker.perchito.app" },
+  { name: "fc-crm", port: 4600, publicUrl: "https://crm.perchito.app", localPath: "/" },
+  { name: "FC booking page", port: 4600, publicUrl: "https://book.fccleaningcompany.com", localPath: "/book" },
+  { name: "mc-crm", port: 4610, publicUrl: "https://mc.perchito.app", localPath: "/" },
+  { name: "Refund Tracker", port: 4700, publicUrl: "https://tracker.perchito.app", localPath: "/" },
   { name: "Wedding Gallery", port: 4800, publicUrl: "https://gallery.perchito.app" },
   { name: "Invoice Builder", port: 3001, publicUrl: "https://invoice.perchito.app" },
   { name: "DocuSeal", port: 3002, publicUrl: "https://sign.fccleaningcompany.com" },

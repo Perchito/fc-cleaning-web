@@ -157,7 +157,10 @@ loaders.overview = async () => {
     .map(
       (a) => `<div class="card svc"><div class="svc-top"><span class="svc-name">${esc(a.name)}</span>${pill(a.ok ? "active" : "failed")}</div>
         <div class="desc">${a.ok ? `responding on :${a.port}` : `not responding on :${a.port}`}</div>
-        <div class="btns"><a class="btn small ghost" href="${esc(a.publicUrl)}" target="_blank" rel="noopener">Open ↗</a></div></div>`,
+        <div class="btns"><a class="btn small ghost" href="${esc(a.publicUrl)}" target="_blank" rel="noopener">Open ↗</a>${
+          // localPath = app listens on all interfaces, so it opens directly over Tailscale/LAN (no Cloudflare, no DNS)
+          a.localPath ? `<a class="btn small ghost" href="http://${esc(location.hostname)}:${a.port}${esc(a.localPath)}" target="_blank" rel="noopener">Local ↗</a>` : ""
+        }</div></div>`,
     )
     .join("");
 
