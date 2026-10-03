@@ -2,7 +2,7 @@
 // app that uses it for a database and/or file storage. Shared by the control
 // panel (the only writer) and the storage API (reader).
 //
-// /etc/fc-outreach/projects.json (mode 600, owned by the app user):
+// /etc/perchito/projects.json (mode 600, owned by the app user):
 //   { "projects": { "<slug>": { name, createdAt, key, publicRead,
 //                               storage: true|false,
 //                               db: { name, user, password } | null } } }
@@ -10,7 +10,7 @@
 import crypto from "node:crypto";
 import { readFile, rename, stat, writeFile } from "node:fs/promises";
 
-export const PROJECTS_FILE = process.env.PROJECTS_FILE || "/etc/fc-outreach/projects.json";
+export const PROJECTS_FILE = process.env.PROJECTS_FILE || "/etc/perchito/projects.json";
 export const SLUG_RE = /^[a-z][a-z0-9-]{1,30}[a-z0-9]$/;
 
 let cache = { mtimeMs: -1, data: { projects: {} } };

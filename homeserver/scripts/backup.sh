@@ -86,7 +86,7 @@ dump_config() {
     home/perchito/invoice-builder home/perchito/docuseal home/perchito/frappe-hr \
     home/perchito/fc-crm/.env home/perchito/supabase-selfhost/docker/.env \
     home/perchito/wedding-gallery-platform/.env.production.local \
-    home/perchito/.cloudflared etc/fc-outreach etc/cloudflared/config.yml 2>/dev/null || { rm -f "$out.part"; return 1; }
+    home/perchito/.cloudflared etc/perchito etc/cloudflared/config.yml 2>/dev/null || { rm -f "$out.part"; return 1; }
   mv "$out.part" "$out"
   echo "backup written: $out ($(du -h "$out" | cut -f1))"
   rotate config .tar.gz

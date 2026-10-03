@@ -13,7 +13,7 @@
 #     perchito-storage (storage API for project buckets, :9100),
 #     fc-outreach-backup.timer (nightly pg_dump of every database)
 #   - a Postgres admin role the panel uses to create a database per project
-#   - /etc/fc-outreach/outreach.env with generated passwords/secrets
+#   - /etc/perchito/perchito.env with generated passwords/secrets
 # Safe to re-run: existing database, env file and data are kept.
 #
 # Options:  --user NAME   run services as NAME (default: the user who ran sudo)
@@ -40,8 +40,8 @@ id "$APP_USER" >/dev/null 2>&1 || { echo "no such user: $APP_USER" >&2; exit 1; 
 
 REPO="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 APP_HOME="$(getent passwd "$APP_USER" | cut -d: -f6)"
-ETC=/etc/fc-outreach
-ENV_FILE="$ETC/outreach.env"
+ETC=/etc/perchito
+ENV_FILE="$ETC/perchito.env"
 STORAGE=/srv/fc-outreach/storage
 DB_NAME=fc_outreach
 DB_USER=fc_outreach

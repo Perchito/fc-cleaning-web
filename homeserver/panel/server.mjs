@@ -26,7 +26,7 @@ const REPO = resolve(HERE, "../..");
 const SCRIPTS = resolve(HERE, "../scripts");
 const PUBLIC = join(HERE, "public");
 
-const ENV_FILE = process.env.ENV_FILE || "/etc/fc-outreach/outreach.env";
+const ENV_FILE = process.env.ENV_FILE || "/etc/perchito/perchito.env";
 const PORT = Number(process.env.PANEL_PORT || 8090);
 const HOST = process.env.PANEL_HOST || "0.0.0.0";
 const PASS = process.env.PANEL_PASS || "";

@@ -2,7 +2,7 @@
 # Shared by the homeserver scripts. Loads KEY=value lines from the env file
 # without executing it as shell (values may contain spaces, e.g. addresses).
 load_env() {
-  local file="${ENV_FILE:-/etc/fc-outreach/outreach.env}" line k v
+  local file="${ENV_FILE:-/etc/perchito/perchito.env}" line k v
   [ -r "$file" ] || return 0
   while IFS= read -r line || [ -n "$line" ]; do
     [[ "$line" =~ ^[[:space:]]*([A-Z0-9_]+)[[:space:]]*=(.*)$ ]] || continue
@@ -16,7 +16,7 @@ load_env() {
 
 # Print "<slug> <database url>" for every project that has a database.
 project_dbs() {
-  local file="${PROJECTS_FILE:-/etc/fc-outreach/projects.json}"
+  local file="${PROJECTS_FILE:-/etc/perchito/projects.json}"
   [ -r "$file" ] || return 0
   node -e '
     const d = JSON.parse(require("fs").readFileSync(process.argv[1], "utf8"));

@@ -74,8 +74,8 @@ A **web control panel** manages all of it.
  │                                     wedding-gallery's Docker db) │
  │                                                                  │
  │  /srv/fc-outreach/storage/      files/ backups/ projects/ trash/│
- │  /etc/fc-outreach/outreach.env  settings + secrets              │
- │  /etc/fc-outreach/projects.json projects, keys, DB logins       │
+ │  /etc/perchito/perchito.env     settings + secrets              │
+ │  /etc/perchito/projects.json    projects, keys, DB logins       │
  │  /etc/cloudflared/config.yml    tunnel ingress rules (sudo-edit)│
  └──────────────────────────────────────────────────────────────────┘
 ```
@@ -198,7 +198,7 @@ backup, drops the database and login, and moves the bucket to
 | **Services & logs** | Status, memory and restart count for each service. Live `journalctl` logs |
 | **Database** | Outreach database: size, row count per table, AI job queue. Backups of every database: create, download, **restore** (a safety backup is taken first), delete. Neon import |
 | **Storage** | Browse shared files or any project's bucket. Upload (including drag and drop), download, create folders, delete |
-| **Settings** | Edit `/etc/fc-outreach/outreach.env`. Secrets are never shown: leave a field blank to keep its value, or type to replace it |
+| **Settings** | Edit `/etc/perchito/perchito.env`. Secrets are never shown: leave a field blank to keep its value, or type to replace it |
 
 The panel runs as your user. The only root access it has is to run
 `systemctl start|stop|restart` on its own services (`/etc/sudoers.d/fc-outreach`).
