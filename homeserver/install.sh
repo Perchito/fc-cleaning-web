@@ -327,7 +327,7 @@ SYSTEMCTL="$(command -v systemctl)"
   # fc-crm and fc-crm-discover.timer: that repo/its systemd units are installed
   # separately (github.com/Perchito/fc-crm, not by this script) — granted here
   # so the panel can control them once they exist.
-  for u in fc-outreach-app fc-outreach-worker fc-crm fc-crm-discover.timer mc-crm mc-crm-discover.timer fc-inspect fc-panel perchito-storage postgresql fc-outreach-backup.timer cloudflared tailscaled; do
+  for u in fc-outreach-app fc-outreach-worker fc-crm fc-crm-discover.timer mc-crm mc-crm-discover.timer fc-inspect lcc-reports fc-panel perchito-storage postgresql fc-outreach-backup.timer cloudflared tailscaled; do
     for a in start stop restart enable disable; do
       echo "$APP_USER ALL=(root) NOPASSWD: $SYSTEMCTL $a $u"
     done
